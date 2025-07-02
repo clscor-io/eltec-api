@@ -16,9 +16,31 @@ declare namespace json = "http://www.w3.org/2013/XSL/json";
 declare namespace tei = "http://www.tei-c.org/ns/1.0";
 
 (:~
- : API info
+ : API base
  :
  : Shows version numbers of the eltec-api app and the underlying eXist-db.
+ :
+ : @result JSON object
+ :)
+declare
+  %rest:GET
+  %rest:path("/eltec")
+  %rest:produces("application/json")
+  %output:method("json")
+function api:base() {
+  let $expath := config:expath-descriptor()
+  let $repo := config:repo-descriptor()
+  return map {
+    "name": $expath/expath:title/string(),
+    "version": $expath/@version/string(),
+    "existdb": system:get-version(),
+    "base": $config:api-base
+  }
+};
+
+(:~
+ : API info
+ :
  :
  : @result JSON object
  :)
@@ -29,15 +51,7 @@ declare
   %output:media-type("application/json")
   %output:method("json")
 function api:info() {
-  let $expath := config:expath-descriptor()
-  let $repo := config:repo-descriptor()
-  return map {
-    "name": $expath/expath:title/string(),
-    "version": $expath/@version/string(),
-    "status": $repo/repo:status/string(),
-    "existdb": system:get-version(),
-    "base": $config:api-base
-  }
+  api:base()
 };
 
 (:~
