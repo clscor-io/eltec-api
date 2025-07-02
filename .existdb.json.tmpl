@@ -1,0 +1,25 @@
+{
+  "servers": {
+    "localhost": {
+      "server": "http://localhost:@docker.port@/exist",
+      "user": "admin",
+      "password": ""
+    }
+  },
+  "sync": {
+    "server": "localhost",
+    "root": "/db/apps/eltec",
+    "active": true,
+    "ignore": [
+      ".existdb.json",
+      ".git/**",
+      "build.xml",
+      "build.properties",
+      "build/**",
+      "compose*.yml",
+      "*.bak",
+      "*.tmpl",
+      "*.xar"
+    ]
+  }
+}

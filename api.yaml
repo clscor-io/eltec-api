@@ -1,0 +1,514 @@
+openapi: "3.0.0"
+
+info:
+  version: 0.0.1
+  title: ELTeC API
+  contact:
+    email: "trilcke@uni-potsdam.de"
+  termsOfService: "https://eltec.clscor.io"
+  license:
+    name: "MIT"
+    url: "https://github.com/clscor-io/eltec-api/blob/main/LICENSE"
+
+servers:
+  - description: Production
+    url: https://eltec.clscor.io/api
+
+tags:
+  - name: meta
+    description: Information about this service.
+  - name: corpus
+    description: Analyze a corpus.
+  - name: text
+    description: Analyze a text.
+  - name: admin
+    description: Manage corpora.
+
+paths:
+  /info:
+    get:
+      summary: API info
+      description: >-
+        Shows version numbers of the eltec-api app and the underlying
+        eXist-db.
+      operationId: get-info
+      tags: [meta]
+      responses:
+        "200":
+          description: Returns JSON object
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Info"
+              example:
+                { "existdb": "6.4.0", "name": "ELTeC API", "version": "1.0.0" }
+
+  /corpora:
+    get:
+      summary: List available corpora
+      description: Get a list of available corpora. Optionally include corpus metrics.
+      operationId: get-corpora
+      tags: [corpus]
+      responses:
+        "200":
+          description: Returns list of available corpora
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Corpus"
+              example:
+                [
+                  {
+                    "name": "eng",
+                    "title": "English Novel Corpus",
+                    "repository": "https://github.com/COST-ELTeC/ELTeC-eng",
+                    "description": "This is the English novel collection for the ELTeC, the European Literary Text Collection.",
+                    "licence": "CC BY",
+                    "licenceUrl": "https://creativecommons.org/licenses/by/4.0/",
+                    "uri": "http://eltec.clscor.io/api/corpora/eng",
+                    "textsUrl": "http://eltec.clscor.io/api/corpora/eng/texts",
+                    "metrics":
+                      {
+                        "numOfTexts": 23,
+                        "numOfAuthors": 21,
+                        "numOfParagraphs": 46457,
+                        "numOfWords": 2346818.0,
+                      },
+                    "updated": "2025-07-02T13:52:54.934Z",
+                  },
+                ]
+    post:
+      summary: Add new corpus
+      operationId: post-corpora
+      tags: [admin]
+      requestBody:
+        description: |
+          The meta data for the new corpus can be provided in either JSON or XML
+          format. The JSON structure is a straightforward object providing
+          corpus name, title and (optionally) a repository URL. The XML format
+          needs to be a TEI document with `teiCorpus` as its root element. The
+          corpus title needs to be provided in the `titleStmt` while the name
+          and repo URL are encoded in particular `idno` elements in the
+          `publicationStmt` (see example).
+
+          NB: Contrary to the TEI schema our teiCorpus document must not contain
+          the `TEI` elements for individual texts.
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - title
+              properties:
+                name:
+                  type: string
+                  description: corpus name
+                title:
+                  type: string
+                  description: corpus title
+                repository:
+                  type: string
+                  description: Git repository URL
+            example: |
+              {
+                "name": "en",
+                "title": "English Novel Corpus",
+                "repository": "https://github.com/dracor-org/eco_en"
+              }
+          application/xml:
+            schema:
+              type: string
+            example: |
+              <?xml version="1.0" encoding="UTF-8"?>
+              <teiCorpus xmlns="http://www.tei-c.org/ns/1.0">
+                <teiHeader>
+                  <fileDesc>
+                    <titleStmt>
+                      <title>English Novel Corpus</title>
+                    </titleStmt>
+                    <publicationStmt>
+                      <publisher>ELTeC</publisher>
+                      <idno type="URI" xml:base="https://eltec.clscor.io/">eng</idno>
+                      <idno type="repo">https://github.com/COST-ELTeC/ELTeC-eng</idno>
+                    </publicationStmt>
+                  </fileDesc>
+                </teiHeader>
+              </teiCorpus>
+      responses:
+        "200":
+          description: Returns corpus metadata
+          content:
+            application/json:
+              schema:
+                type: object
+        "409":
+          description: Corpus already exists
+        "400":
+          description: Posted data lacks required properties or is malformed
+
+  /corpora/{corpusname}:
+    get:
+      summary: Get metadata of a single corpus
+      description: Retrieve metadata about a single corpus.
+      operationId: get-corpus
+      tags: [corpus]
+      parameters:
+        - $ref: "#/components/parameters/corpusname"
+      responses:
+        "200":
+          description: Returns object representing corpus metadata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Corpus"
+              example: |
+                {
+                  "name": "eng",
+                  "title": "English Novel Corpus",
+                  "repository": "https://github.com/COST-ELTeC/ELTeC-eng",
+                  "description": "This is the English novel collection for the ELTeC, the European Literary Text Collection.",
+                  "licence": "CC BY",
+                  "licenceUrl": "https://creativecommons.org/licenses/by/4.0/",
+                  "uri": "http://eltec.clscor.io/api/corpora/eng",
+                  "textsUrl": "http://eltec.clscor.io/api/corpora/eng/texts",
+                  "metrics":
+                    {
+                      "numOfTexts": 23,
+                      "numOfAuthors": 21,
+                      "numOfParagraphs": 46457,
+                      "numOfWords": 2346818.0
+                    },
+                  "updated": "2025-07-02T13:52:54.934Z"
+                }
+        "404":
+          description: Corpus not found
+    post:
+      summary: Load corpus data from its repository
+      description: >-
+        This endpoint requires authorization.
+
+        Sending a POST request to the corpus URI reloads the data for this
+        corpus from its repository (if defined).
+      operationId: load-corpus
+      tags: [admin]
+      parameters:
+        - $ref: "#/components/parameters/corpusname"
+      responses:
+        "202":
+          description: Corpus update has been scheduled
+          content:
+            application/json:
+              schema:
+                type: object
+              example: |
+                {
+                  "message": "corpus update scheduled"
+                }
+        "404":
+          description: Corpus not found
+        "409":
+          description: >-
+            Corpus update could not be scheduled.
+
+            This is the response when another update has not yet finished.
+    delete:
+      summary: Remove corpus from database
+      operationId: delete-corpus
+      tags: [admin]
+      parameters:
+        - $ref: "#/components/parameters/corpusname"
+      responses:
+        "200":
+          description: Corpus deleted
+        "404":
+          description: Corpus not found
+
+  /corpora/{corpusname}/texts:
+    get:
+      summary: List texts in a corpus
+      description: Get the contens of a single corpus
+      operationId: get-corpus-texts
+      tags: [corpus]
+      parameters:
+        - $ref: "#/components/parameters/corpusname"
+      responses:
+        "200":
+          description: Returns an array with text meta data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Text"
+
+  /corpora/{corpusname}/texts/{textname}:
+    get:
+      summary: Get a single text information
+      description: Get metadata about an individual text in JSON format.
+      operationId: get-text
+      tags: [text]
+      parameters:
+        - $ref: "#/components/parameters/corpusname"
+        - $ref: "#/components/parameters/textname"
+      responses:
+        "200":
+          description: Returns an object with text meta data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Text"
+            application/tei+xml:
+              schema:
+                type: string
+
+    delete:
+      summary: Remove a single text from the corpus
+      operationId: delete-text
+      tags: [admin]
+      parameters:
+        - $ref: "#/components/parameters/corpusname"
+        - $ref: "#/components/parameters/textname"
+      responses:
+        "200":
+          description: Text has been removed
+        "404":
+          description: No such text under this URI
+
+  /corpora/{corpusname}/texts/{textname}/tei:
+    get:
+      summary: Get a single text
+      description: Get a single text as TEI XML.
+      operationId: get-text-tei
+      parameters:
+        - $ref: "#/components/parameters/corpusname"
+        - $ref: "#/components/parameters/textname"
+      tags: [text]
+      responses:
+        "200":
+          description: Returns a TEI XML document
+          content:
+            application/tei+xml:
+              schema:
+                type: string
+
+  /corpora/{corpusname}/texts/{textname}/plaintext:
+    get:
+      summary: Get plain text version of a single text
+      description: Outputs the body and of the TEI document without any markup.
+      operationId: get-text-plain
+      parameters:
+        - $ref: "#/components/parameters/corpusname"
+        - $ref: "#/components/parameters/textname"
+      tags: [text]
+      responses:
+        "200":
+          description: Returns a plain text document
+          content:
+            text/plain:
+
+components:
+  parameters:
+    corpusname:
+      name: corpusname
+      in: path
+      required: true
+      description: >
+        Short name of the corpus as provided in the `name` property of the result
+        objects from the [/corpora](#/corpus/get-corpora) endpoint
+      schema:
+        type: string
+      examples:
+        EnglishNovelCorpus:
+          value: eng
+          summary: English Novel Corpus
+        GermanNovelCorpus:
+          value: ger
+          summary: German Novel Corpus
+    textname:
+      name: textname
+      in: path
+      required: true
+      description: >
+        Name parameter (or "slug") of the text as provided in the `name`
+        property of the result objects of the
+        [/corpora/{corpusname}/texts](#/corpus/get-corpus-texts) endpoint.
+      schema:
+        type: string
+      examples:
+        frankenstein:
+          value: ENG18900_Doyle.xml
+          summary: "The Sign of Four : ELTeC Edition"
+  schemas:
+    Info:
+      type: object
+      properties:
+        version:
+          type: string
+        name:
+          type: string
+        status:
+          type: string
+        existdb:
+          type: string
+    CorpusMetrics:
+      type: object
+      properties:
+        numOfTexts:
+          type: integer
+        numOfParagraphs:
+          type: integer
+        numOfWords:
+          type: integer
+        numOfAuthors:
+          type: integer
+    Corpus:
+      type: object
+      properties:
+        name:
+          type: string
+        title:
+          type: string
+        acronym:
+          type: string
+        description:
+          type: string
+        repository:
+          type: string
+          format: url
+        licence:
+          type: string
+        licenceUrl:
+          type: string
+          format: url
+        metrics:
+          $ref: "#/components/schemas/CorpusMetrics"
+        textsUrl:
+          type: string
+          format: url
+        updated:
+          type: string
+      required:
+        - name
+        - title
+        - repository
+        - textsUrl
+        - updated
+    ExternalReferenceResourceId:
+      type: object
+      properties:
+        type:
+          type: string
+        ref:
+          type: string
+    TextMetrics:
+      type: object
+      properties:
+        numOfChapters:
+          type: integer
+        numOfParagraphs:
+          type: integer
+        numOfWords:
+          type: integer
+    Author:
+      type: object
+      properties:
+        name:
+          type: string
+        ref:
+          type: string
+          format: url
+          description: Wikidata URI
+        gender:
+          type: string
+      required:
+        - name
+    DigitalSource:
+      type: object
+      properties:
+        url:
+          type: string
+          format: url
+        name:
+          type: string
+      required:
+        - url
+    PrintSource:
+      type: object
+      properties:
+        publisher:
+          type: string
+        placePublished:
+          type: string
+        yearPublished:
+          type: integer
+        title:
+          type: string
+    Dates:
+      type: object
+      properties:
+        yearWritten:
+          type: string
+          nullable: true
+        yearPrinted:
+          type: string
+          nullable: true
+        yearNormalized:
+          type: integer
+          nullable: true
+    Text:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        corpus:
+          type: string
+        title:
+          type: string
+        authors:
+          type: array
+          items:
+            $ref: "#/components/schemas/Author"
+        ref:
+          type: string
+          format: url
+          description: Wikidata URI for text
+        digitalSource:
+          $ref: "#/components/schemas/DigitalSource"
+        printedSource:
+          $ref: "#/components/schemas/PrintSource"
+        dates:
+          $ref: "#/components/schemas/Dates"
+        metrics:
+          $ref: "#/components/schemas/TextMetrics"
+        corpusUrl:
+          type: string
+          format: url
+      required:
+        - id
+        - name
+        - title
+        - corpus
+        - matrics
+        - corpusUrl
+    Occurrence:
+      type: object
+      properties:
+        frequency:
+          type: integer
+        id:
+          type: string
+        # FIXME: Including the text paragraphs will not perform on the corpus
+        # level which is why the property is optional for now. We should
+        # consider removing it and finding an alternative why to access the
+        # text. How about providing a link to the TEI with the paragraph ID as
+        # fragment identifier.
+        text:
+          type: string
+      required:
+        - frequency
+        - id

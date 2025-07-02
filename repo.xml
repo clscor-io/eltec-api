@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<meta xmlns="http://exist-db.org/xquery/repo">
+  <description>RESTful API for the ELTeC Project</description>
+  <author>Carsten Milling</author>
+  <website>https://github.com/clscor-io/eltec-api</website>
+  <status></status>
+  <license ref="https://spdx.org/licenses/">MIT</license>
+  <copyright>true</copyright>
+  <type>application</type>
+  <target>eltec</target>
+  <prepare>pre-install.xq</prepare>
+  <finish>post-install.xq</finish>
+</meta>
