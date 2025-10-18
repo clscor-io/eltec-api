@@ -12,6 +12,7 @@ declare namespace compression = "http://exist-db.org/xquery/compression";
 declare namespace util = "http://exist-db.org/xquery/util";
 declare namespace tei = "http://www.tei-c.org/ns/1.0";
 
+(: FIXME :)
 declare function local:entry-data(
   $path as xs:anyURI,
   $type as xs:string,
@@ -43,6 +44,7 @@ declare function local:entry-filter(
     false()
 };
 
+(: FIXME: adopt github functions from dracor-api  :)
 (:~
  : Load corpus from ZIP archive
  :
@@ -54,8 +56,7 @@ as xs:string* {
   let $info := eltei:get-corpus-info($corpus)
   let $name := $info?name
 
-  let $data-collection := $config:data-root || "/" || $name
-  (: let $metrics-collection := $config:metrics-root || "/" || $name :)
+  let $corpus-collection := $config:corpora-root || "/" || $name
 
   let $archive :=
     if ($info?archive) then
@@ -85,23 +86,14 @@ as xs:string* {
               util:log-system-out("removing " || $resource),
               xmldb:remove($data-collection, $resource)
             ),
-            (: remove collections :)
-            (: if (xmldb:collection-available($metrics-collection))
-            then (
-              util:log-system-out("removing " || $metrics-collection),
-              xmldb:remove($metrics-collection)
-            ) else (), :)
-
-            (: (re)create collections :)
-            (: xmldb:create-collection($config:metrics-root, $name), :)
-
             (: load files from ZIP archive :)
             compression:unzip(
               $zip,
               util:function(xs:QName("local:entry-filter"), 3),
               (),
               util:function(xs:QName("local:entry-data"), 4),
-              ($data-collection)
+              (: FIXME maybe :)
+              ($corpora-collection)
             )
           )
         else (

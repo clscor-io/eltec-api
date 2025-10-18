@@ -44,11 +44,10 @@ declare function metrics:calculate($url as xs:string) {
 declare function metrics:update($url as xs:string) {
   let $metrics := metrics:calculate($url)
   let $paths := elutil:filepaths($url)
-  let $collection := $paths?collections?metrics
-  let $resource := $paths?filename
+  let $collection := $paths?collections?text
   return (
-    util:log-system-out('Metrics update: ' || $collection || '/' || $resource),
-    xmldb:store($collection, $resource, $metrics)
+    util:log-system-out('Metrics update: ' || $paths?files?metrics),
+    xmldb:store($collection, "metrics.xml", $metrics)
   )
 };
 
@@ -57,21 +56,18 @@ declare function metrics:update($url as xs:string) {
 :)
 declare function metrics:update() as xs:string* {
   let $l := util:log-system-out("Updating metrics files")
-  for $tei in collection($config:data-root)//tei:TEI
+  for $tei in collection($config:corpora-root)//tei:TEI
   let $url := $tei/base-uri()
   return metrics:update($url)
 };
 
 declare function metrics:corpus ($corpus as xs:string) {
-  let $collection-uri := concat($config:data-root, "/", $corpus)
-  let $col := collection($collection-uri)
-  let $metrics-uri := concat($config:metrics-root, "/", $corpus)
-  let $metrics := collection($metrics-uri)
+  let $col := collection(concat($config:corpora-root, "/", $corpus))
   return map {
     "numOfTexts": count($col/tei:TEI),
     "numOfAuthors": count(distinct-values($col//tei:titleStmt//tei:author)),
     "numOfParagraphs": count($col//tei:body//tei:p),
-    "numOfWords": sum($metrics//words)
+    "numOfWords": sum($col//words)
   }
 };
 
@@ -80,7 +76,8 @@ declare function metrics:text (
   $textname as xs:string
 ) {
   let $doc := elutil:get-doc($corpusname, $textname)
-  let $metrics := elutil:get-doc($corpusname, $textname, $config:metrics-root)
+  let $paths := elutil:filepaths($corpusname, $textname)
+  let $metrics := doc($paths?files?metrics)
   return map {
     "numOfChapters": count($doc/tei:TEI//tei:text//tei:div[@type = "chapter"]),
     "numOfParagraphs": count($doc/tei:TEI//tei:body//tei:p),

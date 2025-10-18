@@ -18,21 +18,58 @@ declare namespace json = "http://www.w3.org/2013/XSL/json";
  :)
 declare function elutil:filepaths ($url as xs:string) as map() {
   let $segments := tokenize($url, "/")
-  let $corpusname := $segments[last() - 1]
+  let $corpusname := $segments[last() - 2]
+  let $textname := $segments[last() - 1]
   let $filename := $segments[last()]
-  let $textname := substring-before($filename, ".xml")
+  return elutil:filepaths($corpusname, $textname, $filename)
+};
+
+(:~
+ : Provide map of files and paths related to a text.
+ :
+ : @param $corpusname
+ : @param $textname
+ : @return map()
+ :)
+declare function elutil:filepaths (
+  $corpusname as xs:string,
+  $textname as xs:string
+) as map() {
+  elutil:filepaths($corpusname, $textname, "tei.xml")
+};
+
+(:~
+ : Provide map of files and paths related to a text.
+ :
+ : @param $corpusname
+ : @param $textname
+ : @param $filename
+ : @return map()
+ :)
+declare function elutil:filepaths (
+  $corpusname as xs:string,
+  $textname as xs:string,
+  $filename as xs:string
+) as map() {
+  let $textpath := $config:corpora-root || "/" || $corpusname || "/" || $textname
+  let $url := $textpath || "/" || $filename
+  let $uri :=
+    $config:api-base || "/corpora/" || $corpusname || "/texts/" || $textname
   return map {
+    "uri": $uri,
+    "url": $url,
     "filename": $filename,
     "textname": $textname,
     "corpusname": $corpusname,
     "collections": map {
-      "metrics": $config:metrics-root || "/" || $corpusname,
-      "tei": $config:data-root || "/" || $corpusname
+      "corpus": $config:corpora-root || "/" || $corpusname,
+      "text": $textpath
     },
     "files": map {
-      "tei": $config:data-root || "/" || $corpusname || "/" || $filename
-    },
-    "url": $url
+      "tei": $textpath || "/tei.xml",
+      "metrics": $textpath || "/metrics.xml",
+      "git": $textpath || "/git.xml"
+    }
   }
 };
 
@@ -48,7 +85,7 @@ declare function elutil:get-doc(
   $textname as xs:string,
   $root as xs:string
 ) as node()* {
-  doc($root || "/" || $corpusname || "/" || $textname || ".xml")
+  doc($root || "/" || $corpusname || "/" || $textname || "/tei.xml")
 };
 
 
@@ -62,7 +99,8 @@ declare function elutil:get-doc(
   $corpusname as xs:string,
   $textname as xs:string
 ) as node()* {
-  elutil:get-doc($corpusname, $textname, $config:data-root)
+  let $paths := elutil:filepaths($corpusname, $textname)
+  return doc($paths?files?tei)
 };
 
 (:~
@@ -73,7 +111,7 @@ declare function elutil:get-doc(
 declare function elutil:get-corpus-docs(
   $corpusname as xs:string
 ) as node()* {
-  let $collection := concat($config:data-root, "/", $corpusname)
+  let $collection := $config:corpora-root || "/" || $corpusname
   let $col := collection($collection)
   return $col//tei:TEI
 };

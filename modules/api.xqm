@@ -89,7 +89,7 @@ declare
   %output:method("json")
 function api:corpora() {
   array {
-    for $corpus in collection($config:data-root)//tei:teiCorpus
+    for $corpus in collection($config:corpora-root)//tei:teiCorpus
     let $info := eltei:get-corpus-info($corpus)
     let $name := $info?name
     order by $name
@@ -288,7 +288,7 @@ declare
 function api:corpus-data($corpusname) {
   let $corpus := eltei:get-corpus-info-by-name($corpusname)
   let $metrics := metrics:corpus($corpusname)
-  let $collection := concat($config:data-root, "/", $corpusname)
+  let $collection := concat($config:corpora-root, "/", $corpusname)
   return
     if (not($corpus?name) or not(xmldb:collection-available($collection))) then
       <rest:response>
@@ -406,12 +406,11 @@ function api:delete-corpus($corpusname, $auth) {
         <http:response status="404"/>
       </rest:response>
     else
-      let $url := $config:data-root || "/" || $corpusname || "/corpus.xml"
+      let $url := $config:corpora-root || "/" || $corpusname || "/corpus.xml"
       return
         if ($url = $corpus/base-uri()) then
         (
-          xmldb:remove($config:data-root || "/" || $corpusname),
-          xmldb:remove($config:metrics-root || "/" || $corpusname),
+          xmldb:remove($config:corpora-root || "/" || $corpusname),
           map {
             "message": "corpus deleted",
             "uri": $url
@@ -439,7 +438,7 @@ declare
   %output:method("json")
 function api:corpus-texts($corpusname) {
   let $corpus := eltei:get-corpus-info-by-name($corpusname)
-  let $collection := concat($config:data-root, "/", $corpusname)
+  let $collection := concat($config:corpora-root, "/", $corpusname)
   return
     if (not($corpus?name) or not(xmldb:collection-available($collection))) then
       <rest:response>
@@ -533,9 +532,19 @@ function api:text-tei-put($corpusname, $textname, $data, $auth) {
       )
     else
       let $filename := $textname || ".xml"
-      let $collection := $config:data-root || "/" || $corpusname
-      let $result := xmldb:store($collection, $filename, $data/tei:TEI)
+      let $collection := xmldb:create-collection(
+        $config:corpora-root || "/" || $corpusname, $textname
+      )
+      let $result := xmldb:store($collection, "tei.xml", $data/tei:TEI)
+      (: FIXME: sha :)
+      (: let $_ := (
+        dutil:remove-corpus-sha($corpusname),
+        dutil:remove-sha($corpusname, $playname)
+      ) :)
       return $data
+
+
+
 };
 
 (:~
@@ -558,17 +567,20 @@ function api:text-delete($corpusname, $textname, $data, $auth) {
     </rest:response>
   else
 
-  let $doc := elutil:get-doc($corpusname, $textname)
+  let $paths := elutil:filepaths($corpusname, $textname)
 
   return
-    if (not($doc)) then
+    if (not(doc($paths?files?tei))) then
       <rest:response>
         <http:response status="404"/>
       </rest:response>
-    else
-      let $filename := $textname || ".xml"
-      let $collection := $config:data-root || "/" || $corpusname
-      return (xmldb:remove($collection, $filename))
+    else (
+      (: FIXME: sha :)
+      (: dutil:remove-corpus-sha($corpusname), :)
+      xmldb:remove($paths?collections?text)
+    )
+
+
 };
 
 (:~

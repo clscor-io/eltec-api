@@ -30,8 +30,12 @@ declare variable $config:app-root :=
         substring-before($modulePath, "/modules")
 ;
 
-declare variable $config:file := "/db/data/eltec/config.xml";
-declare variable $config:secrets-file := "/db/data/eltec/secrets.xml";
+declare variable $config:eltec-root := "/db/eltec";
+declare variable $config:corpora-root := $config:eltec-root || "/corpora";
+declare variable $config:webhook-root := $config:eltec-root || "/webhook";
+
+declare variable $config:file := $config:eltec-root || "/config.xml";
+declare variable $config:secrets-file := $config:eltec-root || "/secrets.xml";
 
 (:
   The base URL under which the REST API is hosted.
@@ -41,15 +45,6 @@ declare variable $config:secrets-file := "/db/data/eltec/secrets.xml";
 :)
 declare variable $config:api-base :=
   doc($config:file)//api-base/normalize-space();
-
-declare variable $config:data-root := "/db/data/eltec/tei";
-
-declare variable $config:metrics-root := "/db/data/eltec/metrics";
-
-declare variable $config:webhook-root := "/db/data/eltec/webhook";
-
-declare variable $config:webhook-secret :=
-  doc($config:secrets-file)//gh-webhook/normalize-space();
 
 (: the directory path in corpus repos where the TEI files reside :)
 declare variable $config:corpus-repo-prefix := 'tei';

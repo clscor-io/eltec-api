@@ -20,7 +20,7 @@ declare namespace tei = "http://www.tei-c.org/ns/1.0";
 declare function eltei:get-corpus(
   $corpusname as xs:string
 ) as element()* {
-  collection($config:data-root)//tei:teiCorpus[
+  collection($config:corpora-root)//tei:teiCorpus[
     tei:teiHeader//tei:publicationStmt/tei:idno[
       @type="URI" and
       @xml:base="https://eltec.clscor.io/" and
@@ -356,9 +356,8 @@ declare function eltei:get-corpus-text-info(
 declare function eltei:get-corpus-update-time(
   $corpusname as xs:string
 ) as xs:dateTime* {
-  let $metrics-uri := concat($config:metrics-root, "/", $corpusname)
-  let $metrics := collection($metrics-uri)
-  return max($metrics//metrics/xs:dateTime(@updated))
+  let $col := collection(concat($config:corpora-root, "/", $corpusname))
+  return max($col/metrics/xs:dateTime(@updated))
 };
 
 declare function local:to-markdown($input as element()) as item()* {
