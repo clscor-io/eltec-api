@@ -9,6 +9,6 @@ services:
         - GITHUB_WEBHOOK_SECRET=qwerty
     environment:
       - EXIST_PASSWORD=
-      - ELTEC_API_BASE=http://localhost:8090/exist/restxq/eltec
+      - ELTEC_API_BASE=http://localhost:8090/exist/restxq/eltec/v1
     ports:
       - "8090:8080"

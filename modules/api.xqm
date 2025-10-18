@@ -24,7 +24,7 @@ declare namespace tei = "http://www.tei-c.org/ns/1.0";
  :)
 declare
   %rest:GET
-  %rest:path("/eltec")
+  %rest:path("/eltec/v1")
   %rest:produces("application/json")
   %output:method("json")
 function api:base() {
@@ -46,7 +46,7 @@ function api:base() {
  :)
 declare
   %rest:GET
-  %rest:path("/eltec/info")
+  %rest:path("/eltec/v1/info")
   %rest:produces("application/json")
   %output:media-type("application/json")
   %output:method("json")
@@ -61,7 +61,7 @@ function api:info() {
  :)
 declare
   %rest:GET
-  %rest:path("/eltec/openapi.yaml")
+  %rest:path("/eltec/v1/openapi.yaml")
   %rest:produces("application/yaml")
   %output:media-type("application/yaml")
   %output:method("text")
@@ -83,7 +83,7 @@ function api:openapi-yaml() {
  :)
 declare
   %rest:GET
-  %rest:path("/eltec/corpora")
+  %rest:path("/eltec/v1/corpora")
   %rest:produces("application/json")
   %output:media-type("application/json")
   %output:method("json")
@@ -109,7 +109,7 @@ function api:corpora() {
  :)
 declare
   %rest:POST("{$data}")
-  %rest:path("/eltec/corpora")
+  %rest:path("/eltec/v1/corpora")
   %rest:header-param("Authorization", "{$auth}")
   %rest:consumes("application/xml", "text/xml")
   %rest:produces("application/json")
@@ -194,7 +194,7 @@ function api:corpora-post-tei($data, $auth) {
  :)
 declare
   %rest:POST("{$data}")
-  %rest:path("/eltec/corpora")
+  %rest:path("/eltec/v1/corpora")
   %rest:consumes("application/json")
   %rest:produces("application/json")
   %output:media-type("application/json")
@@ -281,7 +281,7 @@ function api:corpora-post-json($data) {
  :)
 declare
   %rest:GET
-  %rest:path("/eltec/corpora/{$corpusname}")
+  %rest:path("/eltec/v1/corpora/{$corpusname}")
   %rest:produces("application/json")
   %output:media-type("application/json")
   %output:method("json")
@@ -313,7 +313,7 @@ function api:corpus-data($corpusname) {
  :)
 declare
   %rest:POST
-  %rest:path("/eltec/corpora/{$corpusname}")
+  %rest:path("/eltec/v1/corpora/{$corpusname}")
   %rest:header-param("Authorization", "{$auth}")
   %output:method("json")
 function api:post-corpus($corpusname, $auth) {
@@ -381,7 +381,7 @@ function api:post-corpus($corpusname, $auth) {
  :)
 declare
   %rest:DELETE
-  %rest:path("/eltec/corpora/{$corpusname}")
+  %rest:path("/eltec/v1/corpora/{$corpusname}")
   %rest:header-param("Authorization", "{$auth}")
   %rest:produces("application/json")
   %output:media-type("application/json")
@@ -433,7 +433,7 @@ function api:delete-corpus($corpusname, $auth) {
  :)
 declare
   %rest:GET
-  %rest:path("/eltec/corpora/{$corpusname}/texts")
+  %rest:path("/eltec/v1/corpora/{$corpusname}/texts")
   %rest:produces("application/json")
   %output:media-type("application/json")
   %output:method("json")
@@ -458,7 +458,7 @@ function api:corpus-texts($corpusname) {
  :)
 declare
   %rest:GET
-  %rest:path("/eltec/corpora/{$corpusname}/texts/{$textname}")
+  %rest:path("/eltec/v1/corpora/{$corpusname}/texts/{$textname}")
   %rest:produces("application/json")
   %output:media-type("application/json")
   %output:method("json")
@@ -491,7 +491,7 @@ function api:text-info($corpusname, $textname) {
  :)
 declare
   %rest:PUT("{$data}")
-  %rest:path("/eltec/corpora/{$corpusname}/texts/{$textname}")
+  %rest:path("/eltec/v1/corpora/{$corpusname}/texts/{$textname}")
   %rest:header-param("Authorization", "{$auth}")
   %rest:consumes("application/xml", "text/xml")
   %output:method("xml")
@@ -548,7 +548,7 @@ function api:text-tei-put($corpusname, $textname, $data, $auth) {
  :)
 declare
   %rest:DELETE
-  %rest:path("/eltec/corpora/{$corpusname}/texts/{$textname}")
+  %rest:path("/eltec/v1/corpora/{$corpusname}/texts/{$textname}")
   %rest:header-param("Authorization", "{$auth}")
   %output:method("json")
 function api:text-delete($corpusname, $textname, $data, $auth) {
@@ -580,7 +580,7 @@ function api:text-delete($corpusname, $textname, $data, $auth) {
  :)
 declare
   %rest:GET
-  %rest:path("/eltec/corpora/{$corpusname}/texts/{$textname}/tei")
+  %rest:path("/eltec/v1/corpora/{$corpusname}/texts/{$textname}/tei")
   %rest:produces("application/xml")
   %output:media-type("application/xml")
   %output:method("xml")
@@ -604,7 +604,7 @@ function api:text-tei($corpusname, $textname) {
  :)
 declare
   %rest:GET
-  %rest:path("/eltec/corpora/{$corpusname}/texts/{$textname}/plaintext")
+  %rest:path("/eltec/v1/corpora/{$corpusname}/texts/{$textname}/plaintext")
   %rest:produces("text/plain")
   %output:media-type("text/plain")
   %output:method("text")

@@ -25,12 +25,28 @@ tags:
     description: Manage corpora.
 
 paths:
-  /info:
+  /v1:
     get:
-      summary: API info
+      summary: API base
       description: >-
         Shows version numbers of the eltec-api app and the underlying
         eXist-db.
+      operationId: get-base
+      tags: [meta]
+      responses:
+        "200":
+          description: Returns JSON object
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Info"
+              example:
+                { "existdb": "6.4.0", "name": "ELTeC API", "version": "1.0.0" }
+
+  /v1/info:
+    get:
+      summary: API info
+      description: See /v1
       operationId: get-info
       tags: [meta]
       responses:
@@ -43,7 +59,7 @@ paths:
               example:
                 { "existdb": "6.4.0", "name": "ELTeC API", "version": "1.0.0" }
 
-  /corpora:
+  /v1/corpora:
     get:
       summary: List available corpora
       description: Get a list of available corpora. Optionally include corpus metrics.
@@ -149,7 +165,7 @@ paths:
         "400":
           description: Posted data lacks required properties or is malformed
 
-  /corpora/{corpusname}:
+  /v1/corpora/{corpusname}:
     get:
       summary: Get metadata of a single corpus
       description: Retrieve metadata about a single corpus.
@@ -226,7 +242,7 @@ paths:
         "404":
           description: Corpus not found
 
-  /corpora/{corpusname}/texts:
+  /v1/corpora/{corpusname}/texts:
     get:
       summary: List texts in a corpus
       description: Get the contens of a single corpus
@@ -244,7 +260,7 @@ paths:
                 items:
                   $ref: "#/components/schemas/Text"
 
-  /corpora/{corpusname}/texts/{textname}:
+  /v1/corpora/{corpusname}/texts/{textname}:
     get:
       summary: Get a single text information
       description: Get metadata about an individual text in JSON format.
@@ -277,7 +293,7 @@ paths:
         "404":
           description: No such text under this URI
 
-  /corpora/{corpusname}/texts/{textname}/tei:
+  /v1/corpora/{corpusname}/texts/{textname}/tei:
     get:
       summary: Get a single text
       description: Get a single text as TEI XML.
@@ -294,7 +310,7 @@ paths:
               schema:
                 type: string
 
-  /corpora/{corpusname}/texts/{textname}/plaintext:
+  /v1/corpora/{corpusname}/texts/{textname}/plaintext:
     get:
       summary: Get plain text version of a single text
       description: Outputs the body and of the TEI document without any markup.

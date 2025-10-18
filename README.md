@@ -23,7 +23,7 @@ The **eXist database** will become available under http://localhost:8090/.
 To check that the ELTeC API is up run
 
 ```sh
-curl http://localhost:8090/exist/restxq/eltec/info
+curl http://localhost:8090/exist/restxq/eltec/v1
 ```
 
 ## Building the eXist extension
