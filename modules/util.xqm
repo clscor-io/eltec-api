@@ -115,3 +115,60 @@ declare function elutil:get-corpus-docs(
   let $col := collection($collection)
   return $col//tei:TEI
 };
+
+(:~
+ : Create new corpus collection
+ :
+ : @param $corpus Map with corpus description
+ :)
+declare function elutil:create-corpus($corpus as map()) {
+  let $xml :=
+    <teiCorpus xmlns="http://www.tei-c.org/ns/1.0">
+      <teiHeader>
+        <fileDesc>
+          <titleStmt>
+            <title>{$corpus?title}</title>
+          </titleStmt>
+          <publicationStmt>
+            <idno>{$corpus?name}</idno>
+            {
+              if ($corpus?repository)
+              then <idno type="repo">{$corpus?repository}</idno>
+              else ()
+            }
+          </publicationStmt>
+        </fileDesc>
+        {if ($corpus?description) then (
+          <encodingDesc>
+            <projectDesc>
+              {
+                for $p in tokenize($corpus?description, "&#10;&#10;")
+                return <p>{$p}</p>
+              }
+            </projectDesc>
+          </encodingDesc>
+        ) else ()}
+      </teiHeader>
+    </teiCorpus>
+
+  return elutil:create-corpus($corpus?name, $xml)
+};
+
+(:~
+ : Create new corpus collection
+ :
+ : @param $name Corpus name
+ : @param $xml Corpus description
+ :)
+declare function elutil:create-corpus(
+  $name as xs:string,
+  $xml as element(tei:teiCorpus)
+) {
+  util:log-system-out("creating corpus"),
+  util:log-system-out($xml),
+  xmldb:store(
+    xmldb:create-collection($config:corpora-root, $name),
+    "corpus.xml",
+    $xml
+  )
+};

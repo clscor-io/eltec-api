@@ -147,7 +147,7 @@ paths:
                     </titleStmt>
                     <publicationStmt>
                       <publisher>ELTeC</publisher>
-                      <idno type="URI" xml:base="https://eltec.clscor.io/">eng</idno>
+                      <idno>eng</idno>
                       <idno type="repo">https://github.com/COST-ELTeC/ELTeC-eng</idno>
                     </publicationStmt>
                   </fileDesc>

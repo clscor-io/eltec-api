@@ -127,9 +127,7 @@ function api:corpora-post-tei($data, $auth) {
   else
 
   let $header := $data//tei:teiCorpus/tei:teiHeader
-  let $name := $header//tei:publicationStmt/tei:idno[
-    @type = "URI" and @xml:base = "https://eltec.clscor.io/"
-  ]/text()
+  let $name := $header//tei:publicationStmt/tei:idno[not(@type)][1]/text()
 
   let $title := $header//tei:titleStmt/tei:title[1]/text()
 
@@ -171,18 +169,11 @@ function api:corpora-post-tei($data, $auth) {
         "error": "corpus already exists"
       }
     ) else (
-      let $tei-dir := concat($config:data-root, '/', $name)
-      return (
-        util:log-system-out("creating corpus"),
-        util:log-system-out($data),
-        xmldb:create-collection($config:data-root, $name),
-        xmldb:create-collection($config:metrics-root, $name),
-        xmldb:store($tei-dir, "corpus.xml", $data),
-        map {
-          "name": $name,
-          "title": $title
-        }
-      )
+      elutil:create-corpus($name, $data/tei:teiCorpus),
+      map {
+        "name": $name,
+        "title": $title
+      }
     )
 };
 
@@ -233,44 +224,10 @@ function api:corpora-post-json($data) {
         "message": "Only lower case ASCII letters and digits are accepted."
       }
     )
-  else
-    let $corpus :=
-      <teiCorpus xmlns="http://www.tei-c.org/ns/1.0">
-        <teiHeader>
-          <fileDesc>
-            <titleStmt>
-              <title>{$json?title}</title>
-            </titleStmt>
-            <publicationStmt>
-              <idno type="URI" xml:base="https://eltec.clscor.io/">{$name}</idno>
-              {
-                if ($json?repository)
-                then <idno type="repo">{$json?repository}</idno>
-                else ()
-              }
-            </publicationStmt>
-          </fileDesc>
-          {if ($json?description) then (
-            <encodingDesc>
-              <projectDesc>
-                {
-                  for $p in tokenize($json?description, "&#10;&#10;")
-                  return <p>{$p}</p>
-                }
-              </projectDesc>
-            </encodingDesc>
-          ) else ()}
-        </teiHeader>
-      </teiCorpus>
-    let $tei-dir := concat($config:data-root, '/', $name)
-    return (
-      util:log-system-out("creating corpus"),
-      util:log-system-out($corpus),
-      xmldb:create-collection($config:data-root, $name),
-      xmldb:create-collection($config:metrics-root, $name),
-      xmldb:store($tei-dir, "corpus.xml", $corpus),
-      $json
-    )
+  else (
+    elutil:create-corpus($json),
+    $json
+  )
 };
 
 (:~

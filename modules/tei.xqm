@@ -21,11 +21,7 @@ declare function eltei:get-corpus(
   $corpusname as xs:string
 ) as element()* {
   collection($config:corpora-root)//tei:teiCorpus[
-    tei:teiHeader//tei:publicationStmt/tei:idno[
-      @type="URI" and
-      @xml:base="https://eltec.clscor.io/" and
-      . = $corpusname
-    ]
+    tei:teiHeader//tei:publicationStmt/tei:idno[not(@type) and . = $corpusname]
   ]
 };
 
@@ -388,9 +384,7 @@ declare function eltei:get-corpus-info(
   $corpus as element(tei:teiCorpus)*
 ) as map(*)* {
   let $header := $corpus/tei:teiHeader
-  let $name := $header//tei:publicationStmt/tei:idno[
-    @type="URI" and @xml:base="https://eltec.clscor.io/"
-  ]/text()
+  let $name := $header//tei:publicationStmt/tei:idno[not(@type)][1]/text()
   let $title := $header/tei:fileDesc/tei:titleStmt/tei:title[1]/text()
   let $acronym := $header/tei:fileDesc/tei:titleStmt/tei:title[@type="acronym"]/text()
   let $repo := $header//tei:publicationStmt/tei:idno[@type="repo"]/text()
