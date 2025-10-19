@@ -126,7 +126,7 @@ function api:corpora-post-tei($data, $auth) {
     )
   else
 
-  let $header := $data//tei:teiCorpus/tei:teiHeader
+  let $header := if ($data) then $data//tei:teiCorpus/tei:teiHeader else ()
   let $name := $header//tei:publicationStmt/tei:idno[not(@type)][1]/text()
 
   let $title := $header//tei:titleStmt/tei:title[1]/text()
