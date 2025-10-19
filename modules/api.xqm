@@ -186,11 +186,23 @@ function api:corpora-post-tei($data, $auth) {
 declare
   %rest:POST("{$data}")
   %rest:path("/eltec/v1/corpora")
+  %rest:header-param("Authorization", "{$auth}")
   %rest:consumes("application/json")
   %rest:produces("application/json")
   %output:media-type("application/json")
   %output:method("json")
-function api:corpora-post-json($data) {
+function api:corpora-post-json($data, $auth) {
+  if (not($auth)) then
+    (
+      <rest:response>
+        <http:response status="401"/>
+      </rest:response>,
+      map {
+        "message": "authorization required"
+      }
+    )
+  else
+
   let $json := parse-json(util:base64-decode($data))
   let $name := $json?name
   let $description := $json?description
