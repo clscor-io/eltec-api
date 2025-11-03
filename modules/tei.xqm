@@ -392,7 +392,8 @@ declare function eltei:get-corpus-info(
   let $licence := $header//tei:availability/tei:licence
   let $uri := $config:api-base || "/corpora/" || $name
   let $description := if ($projectDesc) then (
-    for $p in $projectDesc/tei:p return local:markdown($p)
+    let $paras := for $p in $projectDesc/tei:p return local:markdown($p)
+    return string-join($paras, "&#10;&#10;")
   ) else ()
   return if ($header) then (
     map:merge((
