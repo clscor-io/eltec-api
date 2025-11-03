@@ -172,3 +172,94 @@ declare function elutil:create-corpus(
     $xml
   )
 };
+
+(:~
+ : Determine Git SHA for corpus recorded in git.xml files
+ :
+ : @param $name Corpus name
+ : @return string* Git SHA1 hash
+ :)
+declare function elutil:get-corpus-sha($name as xs:string) as xs:string* {
+  let $col := collection($config:corpora-root || "/" || $name)
+  let $num-plays := count($col/tei:TEI)
+  let $num-sha := count($col/git/sha)
+  let $shas := distinct-values($col/git/sha)
+
+  return if($num-plays = $num-sha and count($shas) = 1) then $shas[1] else ()
+};
+
+declare function local:record-sha(
+  $collection as xs:string,
+  $sha as xs:string
+) as xs:string* {
+  try {
+    xmldb:store( $collection, "git.xml", <git><sha>{$sha}</sha></git>)
+  } catch * {
+    util:log-system-out($err:description)
+  }
+};
+
+(:~
+ : Write commit SHA to git.xml file for play
+ :
+ : @param $corpusname Corpus name
+ : @param $play Play name
+ : @return string* Path to git.xml file
+ :)
+declare function elutil:record-sha(
+  $corpusname as xs:string,
+  $playname as xs:string,
+  $sha as xs:string
+) as xs:string* {
+  let $paths := elutil:filepaths($corpusname, $playname)
+  return local:record-sha($paths?collections?play, $sha)
+};
+
+(:~
+ : Write commit SHA to git.xml file for corpus
+ :
+ : @param $corpusname Corpus name
+ : @return string* Path to git.xml file
+ :)
+declare function elutil:record-sha(
+  $corpusname as xs:string,
+  $sha as xs:string
+) as xs:string* {
+  let $collection := $config:corpora-root || "/" || $corpusname
+  return local:record-sha($collection, $sha)
+};
+
+declare function local:remove-sha($collection as xs:string) {
+  if (doc-available($collection || "/git.xml")) then (
+    util:log-system-out("Removing git.xml for " || $collection),
+    xmldb:remove($collection, "git.xml")
+  ) else ()
+};
+
+(:~
+ : Remove corpus git.xml file
+ :
+ : @param $corpusname Corpus name
+ : @return string* Path to git.xml file
+ :)
+declare function elutil:remove-corpus-sha(
+  $corpusname as xs:string
+) as xs:string* {
+  let $collection := $config:corpora-root || "/" || $corpusname
+  return local:remove-sha($collection)
+};
+
+(:~
+ : Remove play git.xml file
+ :
+ : @param $corpusname Corpus name
+ : @param $playname Play name
+ :)
+declare function elutil:remove-sha(
+  $corpusname as xs:string,
+  $playname as xs:string
+) {
+  let $collection :=
+    $config:corpora-root || "/" || $corpusname || "/" || $playname
+  return local:remove-sha($collection)
+};
