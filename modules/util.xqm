@@ -164,12 +164,16 @@ declare function elutil:create-corpus(
   $name as xs:string,
   $xml as element(tei:teiCorpus)
 ) {
-  util:log-system-out("creating corpus"),
-  util:log-system-out($xml),
-  xmldb:store(
-    xmldb:create-collection($config:corpora-root, $name),
-    "corpus.xml",
-    $xml
+  if (not($name)) then (
+    util:log-system-out("Missing corpus name. Cannot create corpus!")
+  ) else (
+    util:log-system-out("creating corpus"),
+    util:log-system-out($xml),
+    xmldb:store(
+      xmldb:create-collection($config:corpora-root, $name),
+      "corpus.xml",
+      $xml
+    )
   )
 };
 
