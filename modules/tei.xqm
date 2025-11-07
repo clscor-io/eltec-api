@@ -384,10 +384,10 @@ declare function eltei:get-corpus-info(
   $corpus as element(tei:teiCorpus)*
 ) as map(*)* {
   let $header := $corpus/tei:teiHeader
-  let $name := $header//tei:publicationStmt/tei:idno[not(@type)][1]/text()
-  let $title := $header/tei:fileDesc/tei:titleStmt/tei:title[1]/text()
-  let $acronym := $header/tei:fileDesc/tei:titleStmt/tei:title[@type="acronym"]/text()
-  let $repo := $header//tei:publicationStmt/tei:idno[@type="repo"]/text()
+  let $name := $header//tei:publicationStmt/tei:idno[not(@type)][1]/string()
+  let $title := $header/tei:fileDesc/tei:titleStmt/tei:title[1]/string()
+  let $acronym := $header/tei:fileDesc/tei:titleStmt/tei:title[@type="acronym"]/string()
+  let $repo := $header//tei:publicationStmt/tei:idno[@type="repo"]/string()
   let $projectDesc := $header/tei:encodingDesc/tei:projectDesc
   let $licence := $header//tei:availability/tei:licence
   let $uri := $config:api-base || "/corpora/" || $name
