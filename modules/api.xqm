@@ -505,11 +505,10 @@ function api:text-tei-put($corpusname, $textname, $data, $auth) {
         $config:corpora-root || "/" || $corpusname, $textname
       )
       let $result := xmldb:store($collection, "tei.xml", $data/tei:TEI)
-      (: FIXME: sha :)
-      (: let $_ := (
-        dutil:remove-corpus-sha($corpusname),
-        dutil:remove-sha($corpusname, $playname)
-      ) :)
+      let $_ := (
+        elutil:remove-corpus-sha($corpusname),
+        elutil:remove-sha($corpusname, $playname)
+      )
       return $data
 
 
@@ -544,8 +543,7 @@ function api:text-delete($corpusname, $textname, $data, $auth) {
         <http:response status="404"/>
       </rest:response>
     else (
-      (: FIXME: sha :)
-      (: dutil:remove-corpus-sha($corpusname), :)
+      elutil:remove-corpus-sha($corpusname),
       xmldb:remove($paths?collections?text)
     )
 
