@@ -406,6 +406,8 @@ components:
           format: url
         updated:
           type: string
+        commit:
+          type: string
       required:
         - name
         - title
@@ -504,6 +506,8 @@ components:
         corpusUrl:
           type: string
           format: url
+        commit:
+          type: string
       required:
         - id
         - name

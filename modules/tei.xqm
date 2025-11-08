@@ -265,6 +265,7 @@ declare function eltei:get-text-info($tei as element(tei:TEI)) as map()? {
     let $ref := $tei//tei:fileDesc/tei:titleStmt/tei:title/@ref
     let $year-printed := $tei//tei:sourceDesc/tei:bibl[@type="firstEdition"]
       /tei:date/@when/string()
+    let $sha := doc($paths?files?git)/git/sha/text()
 
     return map:merge((
       map {
@@ -275,6 +276,7 @@ declare function eltei:get-text-info($tei as element(tei:TEI)) as map()? {
         "authors": array { for $author in $authors return $author }
       },
       if($ref) then map:entry("ref", $ref/string()) else (),
+      if($sha) then map:entry("commit", $sha) else (),
       (: TODO implement `digitalSource` and `printedSource` properties :)
       (: TODO implement `yearWritten` and `yearNormalized` :)
       if($year-printed) then
@@ -395,6 +397,9 @@ declare function eltei:get-corpus-info(
     let $paras := for $p in $projectDesc/tei:p return local:markdown($p)
     return string-join($paras, "&#10;&#10;")
   ) else ()
+  let $git-file := $config:corpora-root || "/" || $name || "/git.xml"
+  let $sha := doc($git-file)/git/sha/text()
+
   return if ($header) then (
     map:merge((
       map:entry("uri", $uri),
@@ -403,6 +408,7 @@ declare function eltei:get-corpus-info(
       map:entry("textsUrl", $uri || "/texts"),
       if ($acronym) then map:entry("acronym", $acronym) else (),
       if ($repo) then map:entry("repository", $repo) else (),
+      if ($sha) then map:entry("commit", $sha) else (),
       if ($description) then map:entry("description", $description) else (),
       if ($licence)
         then map:entry("licence", normalize-space($licence)) else (),
