@@ -271,6 +271,79 @@ function api:corpus-data($corpusname) {
 };
 
 (:~
+ : Update corpus.xml
+ :
+ : Sending a PUT request to the corpus URI updates the corpus.xml file of the
+ : corpus with the payload. This endpoint requires authorization.
+ :
+ : @param $corpusname Corpus name
+ : @param $auth Authorization header value
+ : @result JSON object
+ :)
+declare
+  %rest:PUT("{$data}")
+  %rest:path("/eltec/v1/corpora/{$corpusname}")
+  %rest:header-param("Authorization", "{$auth}")
+  %rest:consumes("application/xml", "text/xml")
+  %output:method("json")
+function api:put-corpus($corpusname, $data, $auth) {
+  if (not($auth)) then
+    (
+      <rest:response>
+        <http:response status="401"/>
+      </rest:response>,
+      map {
+        "error": "authorization required"
+      }
+    )
+  else
+
+  let $corpus := eltei:get-corpus($corpusname)
+
+  return
+    if (not($corpus)) then
+      (
+        <rest:response>
+          <http:response status="404"/>
+        </rest:response>,
+        map {
+          "error": "No such corpus"
+        }
+      )
+    else if (not($data/tei:teiCorpus)) then
+      (
+        <rest:response>
+          <http:response status="400"/>
+        </rest:response>,
+        map {
+          "error": "teiCorpus document required"
+        }
+      )
+    else if (
+      not(
+        $data/tei:teiCorpus/tei:teiHeader/tei:fileDesc/tei:publicationStmt
+          /tei:idno[not(@type)][1] eq $corpusname
+      )
+    )
+    then
+      (
+        <rest:response>
+          <http:response status="400"/>
+        </rest:response>,
+        map {
+          "error": "Corpus name mismatch",
+          "message": "The corpus name in the payload differs from the one in the resource path."
+        }
+      )
+    else
+      let $collection := $config:corpora-root || "/" || $corpusname
+      let $result := xmldb:store($collection, "corpus.xml", $data/tei:teiCorpus)
+      let $newCorpus := eltei:get-corpus-info-by-name($corpusname)
+      return $newCorpus
+};
+
+
+(:~
  : Load corpus data from its repository
  :
  : Sending a POST request to the corpus URI reloads the data for this corpus

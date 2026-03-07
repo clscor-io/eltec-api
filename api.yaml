@@ -201,6 +201,29 @@ paths:
                 }
         "404":
           description: Corpus not found
+    put:
+      summary: Update corpus.xml
+      description: >-
+        This endpoint requires authorization.
+
+        Sending a PUT request to the corpus URI with a teiCorpus document as
+        payload updates the corpus information for that corpus.
+      operationId: put-corpus
+      tags: [admin]
+      parameters:
+        - $ref: "#/components/parameters/corpusname"
+      responses:
+        "200":
+          description: corpus.xml has been successfully updated
+          content:
+            application/json:
+              schema:
+                type: object
+        "404":
+          description: Corpus not found
+        "400":
+          description: >-
+            Corpus information could not be updated
     post:
       summary: Load corpus data from its repository
       description: >-
