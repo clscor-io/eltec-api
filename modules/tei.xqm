@@ -11,6 +11,9 @@ import module namespace metrics = "http://eltec.clscor.io/ns/exist/metrics" at "
 
 declare namespace tei = "http://www.tei-c.org/ns/1.0";
 
+declare variable $eltei:ids := doc('/db/eltec/ids.xml');
+declare variable $eltei:authors := doc('/db/eltec/authors.xml');
+
 (:~
  : Get teiCorpus element for corpus identified by $corpusname.
  :
@@ -242,11 +245,14 @@ declare function eltei:get-authors($tei as node()) as map()* {
   for $author in $tei//tei:fileDesc/tei:titleStmt/tei:author[
     not(@role="illustrator")
   ]
+  let $ref := $author/@ref/string()
+  let $wd := $eltei:authors//author[@ref = $ref][1]/@wikidata
   return map:merge((
     map {
       "name": tokenize(normalize-space($author), ' *\(')[1]
     },
-    if ($author/@ref) then map {"ref": $author/@ref/string()} else ()
+    if ($author/@ref) then map {"ref": $author/@ref/string()} else (),
+    if ($wd) then map {"wikidataId": string($wd)} else ()
   ))
 };
 
@@ -331,6 +337,7 @@ declare function eltei:get-text-info($tei as element(tei:TEI)) as map()? {
     let $paths := elutil:filepaths($tei/base-uri())
     let $ref := $tei//tei:fileDesc/tei:titleStmt/tei:title/@ref
     let $sha := doc($paths?files?git)/git/sha/text()
+    let $wikidata-id := $eltei:ids//text[@eltec = $id]/@wikidata
 
     return map:merge((
       map {
@@ -343,6 +350,7 @@ declare function eltei:get-text-info($tei as element(tei:TEI)) as map()? {
       },
       if($ref) then map:entry("ref", $ref/string()) else (),
       if($sha) then map:entry("commit", $sha) else (),
+      if($wikidata-id) then map:entry("wikidataId", string($wikidata-id)) else (),
       map:entry("metrics", metrics:text($paths?corpusname, $paths?textname)),
       map:entry(
         "corpusUrl", $config:api-base || "/corpora/" || $paths?corpusname

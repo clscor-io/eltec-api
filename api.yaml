@@ -461,7 +461,10 @@ components:
         ref:
           type: string
           format: url
-          description: Wikidata URI
+          description: VIAF or GND URI
+        wikidataId:
+          type: string
+          description: Wikidata QID
         gender:
           type: string
       required:
@@ -507,6 +510,8 @@ components:
         name:
           type: string
         corpus:
+          type: string
+        wikidataId:
           type: string
         title:
           type: string
