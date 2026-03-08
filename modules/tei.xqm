@@ -251,10 +251,77 @@ declare function eltei:get-authors($tei as node()) as map()* {
 };
 
 (:~
+ : Extract year from a date element.
+ :
+ : @param $date date element
+ :)
+declare function eltei:get-year($date as element(tei:date)) as xs:string? {
+  let $text := normalize-space($date)
+  return if ($date/@when) then
+    substring($date/@when, 1, 4)
+  else if (matches($text, '^\d{4}$')) then
+    $text
+  else if (matches($text, '^\d{4}-\d{4}$')) then
+    $text
+  else analyze-string($text, '\d{4}')/fn:match[1]/text()
+};
+
+(:~
+ : Extract sourceDesc entries from a TEI document.
+ :
+ : @param $tei TEI element
+ :)
+declare function eltei:get-sources($tei as element(tei:TEI)) as array(*) {
+  let $sourceDesc := $tei/tei:teiHeader/tei:fileDesc/tei:sourceDesc
+
+  return array {
+    for $bibl in $sourceDesc/tei:bibl
+    let $links := for $ref in $bibl/tei:ref
+      let $target := $ref/@target/string()
+      let $url := if (starts-with($target, 'http')) then
+        $target
+      else if (starts-with($target, 'textgrid:')) then
+        'https://textgridrep.org/' || $target
+      else if (starts-with($ref, 'http') and not($ref/@target)) then
+        (: FIXME: the Polish corpus put the URL into <ref> content :)
+        normalize-space($ref)
+      else ()
+      return map:merge((
+        map:entry("url", $url),
+        if ($ref/text()) then map:entry("text", normalize-space($ref)) else ()
+      ))
+
+    return map:merge((
+      map {
+        "bibl": normalize-space($bibl)
+      },
+      if ($bibl/@type) then map:entry("type", string($bibl/@type)) else (),
+      if ($bibl/tei:title) then
+        map:entry("title", $bibl/tei:title[1]/normalize-space())
+      else (),
+      if ($bibl/tei:author) then
+        map:entry("author", $bibl/tei:author[1]/normalize-space())
+      else (),
+      if ($bibl/tei:publisher) then
+        map:entry("publisher", $bibl/tei:publisher[1]/normalize-space())
+      else (),
+      if ($bibl/tei:date) then
+        map:entry("year", eltei:get-year($bibl/tei:date[1]))
+      else (),
+      if ($bibl/tei:pubPlace) then
+        map:entry("placePublished", $bibl/tei:pubPlace[1]/normalize-space())
+      else (),
+      if (count($links)) then
+        map:entry("links", array{$links})
+      else ()
+    ))
+  }
+};
+
+(:~
  : Extract meta data for a text.
  :
- : @param $corpusname
- : @param $textname
+ : @param $tei TEI element
  :)
 declare function eltei:get-text-info($tei as element(tei:TEI)) as map()? {
   if ($tei) then
@@ -263,8 +330,6 @@ declare function eltei:get-text-info($tei as element(tei:TEI)) as map()? {
     let $authors := eltei:get-authors($tei)
     let $paths := elutil:filepaths($tei/base-uri())
     let $ref := $tei//tei:fileDesc/tei:titleStmt/tei:title/@ref
-    let $year-printed := $tei//tei:sourceDesc/tei:bibl[@type="firstEdition"]
-      /tei:date/@when/string()
     let $sha := doc($paths?files?git)/git/sha/text()
 
     return map:merge((
@@ -273,18 +338,11 @@ declare function eltei:get-text-info($tei as element(tei:TEI)) as map()? {
         "name": $paths?textname,
         "corpus": $paths?corpusname,
         "title": $titles?main,
-        "authors": array { for $author in $authors return $author }
+        "authors": array { for $author in $authors return $author },
+        "sources": eltei:get-sources($tei)
       },
       if($ref) then map:entry("ref", $ref/string()) else (),
       if($sha) then map:entry("commit", $sha) else (),
-      (: TODO implement `digitalSource` and `printedSource` properties :)
-      (: TODO implement `yearWritten` and `yearNormalized` :)
-      if($year-printed) then
-        map:entry("dates", map {
-          "yearWritten": $year-printed,
-          "yearNormalized": $year-printed
-        })
-      else (),
       map:entry("metrics", metrics:text($paths?corpusname, $paths?textname)),
       map:entry(
         "corpusUrl", $config:api-base || "/corpora/" || $paths?corpusname

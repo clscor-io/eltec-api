@@ -466,39 +466,39 @@ components:
           type: string
       required:
         - name
-    DigitalSource:
+    Source:
       type: object
       properties:
-        url:
+        bibl:
           type: string
-          format: url
-        name:
+          description: Full normalized text of the bibl element
+        type:
           type: string
-      required:
-        - url
-    PrintSource:
-      type: object
-      properties:
+          description: Source type, e.g. "digitalSource", "printSource", or "firstEdition"
+        author:
+          type: string
+        title:
+          type: string
         publisher:
           type: string
         placePublished:
           type: string
-        yearPublished:
+        year:
           type: integer
-        title:
-          type: string
-    Dates:
-      type: object
-      properties:
-        yearWritten:
-          type: string
-          nullable: true
-        yearPrinted:
-          type: string
-          nullable: true
-        yearNormalized:
-          type: integer
-          nullable: true
+        links:
+          type: array
+          items:
+            type: object
+            properties:
+              url:
+                type: string
+                format: url
+              text:
+                type: string
+            required:
+              - url
+      required:
+        - bibl
     Text:
       type: object
       properties:
@@ -518,12 +518,10 @@ components:
           type: string
           format: url
           description: Wikidata URI for text
-        digitalSource:
-          $ref: "#/components/schemas/DigitalSource"
-        printedSource:
-          $ref: "#/components/schemas/PrintSource"
-        dates:
-          $ref: "#/components/schemas/Dates"
+        sources:
+          type: array
+          items:
+            $ref: "#/components/schemas/Source"
         metrics:
           $ref: "#/components/schemas/TextMetrics"
         corpusUrl:
@@ -536,7 +534,7 @@ components:
         - name
         - title
         - corpus
-        - matrics
+        - metrics
         - corpusUrl
     Occurrence:
       type: object
