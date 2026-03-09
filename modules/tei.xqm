@@ -237,7 +237,29 @@ declare function eltei:get-sort-name (
 };
 
 (:~
+ : Retrieve array of refs from a 'ref' attribute.
+ :
+ : @param $ref A ref attribute
+ :)
+declare function eltei:get-refs($ref as node()) as array(xs:string*)* {
+  let $ref-tokens := tokenize($ref)
+  return array {
+    (: FIXME: we are filtering invalid references here; these should
+       rather be removed from the documents
+     :)
+    for $t in $ref-tokens
+    let $parts := tokenize($t, ":")
+    where not(matches($t, "^wikidata:[^Q]") or $parts[2] = ("missing", "unavailable"))
+    return $t
+  }
+};
+
+(:~
  : Retrieve author data from TEI.
+ :
+ : FIXME: Augmenting the author refs from our external authors.xml should be a
+ : temporary solution until all corpora include the proper Wikidata ID as refs
+ : in their documents.
  :
  : @param $tei TEI document
  :)
@@ -245,14 +267,27 @@ declare function eltei:get-authors($tei as node()) as map()* {
   for $author in $tei//tei:fileDesc/tei:titleStmt/tei:author[
     not(@role="illustrator")
   ]
-  let $ref := $author/@ref/string()
-  let $wd := $eltei:authors//author[@ref = $ref][1]/@wikidata
+
+  let $refs := if ($author/@ref) then eltei:get-refs($author/@ref) else array {}
+  (:
+    If there are refs, but no Wikidata IDs, we look for a match in our authors
+    table
+  :)
+  let $lookup := if (count($refs?*) and not($refs?*[starts-with(., "wikidata:")])) then
+    $eltei:authors//author[@ref = $refs?1][1]/@wikidata/string()
+  else ()
+
   return map:merge((
     map {
       "name": tokenize(normalize-space($author), ' *\(')[1]
     },
-    if ($author/@ref) then map {"ref": $author/@ref/string()} else (),
-    if ($wd) then map {"wikidataId": string($wd)} else ()
+    if (count($refs?*)) then
+      map {
+        "refs": array {
+          $refs?*, if ($lookup) then "wikidata:" || $lookup else ()
+        }
+      }
+    else ()
   ))
 };
 
@@ -289,7 +324,7 @@ declare function eltei:get-sources($tei as element(tei:TEI)) as array(*) {
       else if (starts-with($target, 'textgrid:')) then
         'https://textgridrep.org/' || $target
       else if (starts-with($ref, 'http') and not($ref/@target)) then
-        (: FIXME: the Polish corpus put the URL into <ref> content :)
+        (: FIXME: the Polish corpus puts the URL into <ref> content :)
         normalize-space($ref)
       else ()
       return map:merge((
@@ -337,7 +372,12 @@ declare function eltei:get-text-info($tei as element(tei:TEI)) as map()? {
     let $paths := elutil:filepaths($tei/base-uri())
     let $ref := $tei//tei:fileDesc/tei:titleStmt/tei:title/@ref
     let $sha := doc($paths?files?git)/git/sha/text()
-    let $wikidata-id := $eltei:ids//text[@eltec = $id]/@wikidata
+
+    let $refs := if ($ref) then eltei:get-refs($ref) else array {}
+    let $wikidata-id := if (not($refs?*[starts-with(., "wikidata")])) then
+      $eltei:ids//text[@eltec = $id]/@wikidata
+    else ()
+
 
     return map:merge((
       map {
@@ -350,7 +390,9 @@ declare function eltei:get-text-info($tei as element(tei:TEI)) as map()? {
       },
       if($ref) then map:entry("ref", $ref/string()) else (),
       if($sha) then map:entry("commit", $sha) else (),
-      if($wikidata-id) then map:entry("wikidataId", string($wikidata-id)) else (),
+      map:entry("refs", array {
+        $refs?*, if ($wikidata-id) then "wikidata:" || $wikidata-id else ()
+      }),
       map:entry("metrics", metrics:text($paths?corpusname, $paths?textname)),
       map:entry(
         "corpusUrl", $config:api-base || "/corpora/" || $paths?corpusname

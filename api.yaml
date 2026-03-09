@@ -453,18 +453,19 @@ components:
           type: integer
         numOfWords:
           type: integer
+    References:
+      description: An array of external references, e.g. VIAF, GND or Wikidata IDs
+      type: array
+      items:
+        type: string
+        format: url
     Author:
       type: object
       properties:
         name:
           type: string
-        ref:
-          type: string
-          format: url
-          description: VIAF or GND URI
-        wikidataId:
-          type: string
-          description: Wikidata QID
+        refs:
+          $ref: "#/components/schemas/References"
         gender:
           type: string
       required:
@@ -511,18 +512,14 @@ components:
           type: string
         corpus:
           type: string
-        wikidataId:
-          type: string
         title:
           type: string
         authors:
           type: array
           items:
             $ref: "#/components/schemas/Author"
-        ref:
-          type: string
-          format: url
-          description: Wikidata URI for text
+        refs:
+          $ref: "#/components/schemas/References"
         sources:
           type: array
           items:
