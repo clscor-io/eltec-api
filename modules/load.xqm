@@ -14,13 +14,13 @@ declare namespace compression = "http://exist-db.org/xquery/compression";
 declare namespace util = "http://exist-db.org/xquery/util";
 declare namespace tei = "http://www.tei-c.org/ns/1.0";
 
-declare function local:entry-data(
+declare function local:store(
   $path as xs:anyURI,
   $type as xs:string,
   $data as item()?,
   $param as item()*
 ) as item()* {
-  if($data) then
+  if($data instance of document-node()) then
     let $collection := $param[1]
     let $sha := $param[2]
     let $filename := tokenize($path, "/")[last()]
@@ -40,15 +40,16 @@ declare function local:entry-data(
       }
     return $res
   else
-    ()
+    util:log-system-out($path || " is not a document-node()")
 };
 
-declare function local:entry-filter(
+declare function local:filter(
   $path as xs:anyURI, $type as xs:string, $param as item()*
 ) as xs:boolean {
-  (: filter paths using only files in the "level1" subdirectory :)
-  if ($type eq "resource" and contains($path, "/level1/"))
-  then
+  (: filter paths using only XML files in the "level1" subdirectory :)
+  if (
+    $type eq "resource" and matches($path, "/level1/[-._a-z\d]+\.xml$", "i")
+  ) then
     true()
   else
     false()
@@ -101,17 +102,21 @@ as xs:string* {
             elutil:create-corpus($info),
 
             (: load files from ZIP archive :)
-            (: TODO: try/catch :)
-            compression:unzip(
-              $zip,
-              util:function(xs:QName("local:entry-filter"), 3),
-              (),
-              util:function(xs:QName("local:entry-data"), 4),
-              ($corpus-collection, $archive?sha)
-            ),
-
-            local:record-corpus-sha($name),
-            util:log-system-out($name || " LOADED")
+            try {
+              compression:unzip(
+                $zip,
+                util:function(xs:QName("local:filter"), 3),
+                (),
+                util:function(xs:QName("local:store"), 4),
+                ($corpus-collection, $archive?sha)
+              ),
+              local:record-corpus-sha($name),
+              util:log-system-out($name || " LOADED")
+            } catch * {
+              util:log-system-out(
+                'Error [' || $err:code || ']: ' || $err:description
+              )
+            }
           )
         else (
           util:log("warn", ("cannot load archive ", $archive?url)),
