@@ -63,9 +63,9 @@ as map() {
     "@id": $eldts:api-base,
     "@type": "EntryPoint",
     "dtsVersion": $eldts:spec-version,
-    "collection": $eldts:collection-base || "/{?id,page,nav}",
-    "navigation": $eldts:navigation-base || "/{?resource,ref,start,end,down,tree,page}",
-    "document": $eldts:document-base || "/{?resource,ref,start,end,tree,mediaType}"
+    "collection": $eldts:collection-base || "{?id,page,nav}",
+    "navigation": $eldts:navigation-base || "{?resource,ref,start,end,down,tree,page}",
+    "document": $eldts:document-base || "{?resource,ref,start,end,tree,mediaType}"
   }
 };
 
@@ -921,10 +921,12 @@ declare function local:citable-unit(
       map { "dublinCore": map { "title": normalize-space($elem/tei:head[1]) } }
     else (),
     if ($p-num) then
-      map { "extensions": map {
+      let $word-count := count(tokenize(normalize-space($elem), "\s+"))
+      return map { "extensions": map {
         "@context": $eldts:extensions-context-url,
         "paragraphNumber": $p-num,
-        "snippet": $snippet
+        "snippet": $snippet,
+        "wordCount": $word-count
       }}
     else ()
   ))

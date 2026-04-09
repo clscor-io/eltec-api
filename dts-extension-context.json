@@ -8,6 +8,7 @@
     "numOfAuthors": "eltec:numOfAuthors",
     "paragraphNumber": "eltec:paragraphNumber",
     "snippet": "eltec:snippet",
+    "wordCount": "eltec:wordCount",
     "wikidataId": "eltec:wikidataId",
     "authorWikidataIds": {
       "@id": "eltec:authorWikidataIds",
