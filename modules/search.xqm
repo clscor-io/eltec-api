@@ -28,6 +28,7 @@ declare namespace tei = "http://www.tei-c.org/ns/1.0";
  :
  : @param $q Search query string (required)
  : @param $corpus Corpus name to restrict search (optional)
+ : @param $id Text identifier to restrict search to a single text (optional)
  : @param $limit Number of results per page (default: 20)
  : @param $offset Zero-based offset for pagination (default: 0)
  : @result JSON object with search results
@@ -37,6 +38,7 @@ declare
   %rest:path("/eltec/v1/search")
   %rest:query-param("q", "{$q}")
   %rest:query-param("corpus", "{$corpus}")
+  %rest:query-param("id", "{$id}")
   %rest:query-param("limit", "{$limit}")
   %rest:query-param("offset", "{$offset}")
   %rest:produces("application/json")
@@ -45,6 +47,7 @@ declare
 function search:search(
   $q as xs:string*,
   $corpus as xs:string*,
+  $id as xs:string*,
   $limit as xs:string*,
   $offset as xs:string*
 ) as item()+ {
@@ -70,9 +73,19 @@ function search:search(
         <rest:response><http:response status="404"/></rest:response>,
         map { "error": "Not Found", "message": "Corpus '" || $corpus || "' does not exist." }
       )
+    (: check text exists if id is provided :)
+    else if ($id and not(collection($collection-path)//tei:TEI[@xml:id = $id])) then
+      (
+        <rest:response><http:response status="404"/></rest:response>,
+        map { "error": "Not Found", "message": "Text '" || $id || "' does not exist." }
+      )
     else
 
-  let $hits := collection($collection-path)//tei:p[ft:query(., $q)]
+  let $hits :=
+    if ($id) then
+      collection($collection-path)//tei:TEI[@xml:id = $id]//tei:p[ft:query(., $q)]
+    else
+      collection($collection-path)//tei:p[ft:query(., $q)]
   let $total := count($hits)
   let $page := subsequence($hits, $off + 1, $lim)
 

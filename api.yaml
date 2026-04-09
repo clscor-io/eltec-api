@@ -379,6 +379,14 @@ paths:
           schema:
             type: string
           example: eltec-eng
+        - name: id
+          in: query
+          description: >-
+            Text identifier to restrict search to a single text
+            (e.g. DEU001). Can be combined with `corpus`.
+          schema:
+            type: string
+          example: ENG18400
         - name: limit
           in: query
           description: Number of results to return per page
