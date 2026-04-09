@@ -96,7 +96,8 @@ function api:corpora() {
     return map:merge ((
       $info,
       map:entry("uri", $config:api-base || '/corpora/' || $name),
-      map:entry("metrics", metrics:corpus($name))
+      map:entry("metrics", metrics:corpus($name)),
+      map:entry("balance", metrics:corpus-balance($name))
     ))
   }
 };
@@ -266,7 +267,8 @@ function api:corpus-data($corpusname) {
     else
       map:merge((
         $corpus,
-        map {"metrics": $metrics}
+        map {"metrics": $metrics},
+        map {"balance": metrics:corpus-balance($corpusname)}
       ))
 };
 

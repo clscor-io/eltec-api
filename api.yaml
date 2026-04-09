@@ -608,6 +608,68 @@ components:
           type: integer
         numOfAuthors:
           type: integer
+    BalanceDistribution:
+      type: object
+      description: >-
+        Distribution counts for the ELTeC corpus balance criteria.
+      properties:
+        gender:
+          type: object
+          description: Number of texts by author gender
+          properties:
+            M:
+              type: integer
+              description: Texts by male authors
+            F:
+              type: integer
+              description: Texts by female authors
+        size:
+          type: object
+          description: Number of texts by word-count bracket
+          properties:
+            short:
+              type: integer
+              description: "< 50,000 words"
+            medium:
+              type: integer
+              description: "50,000 – 100,000 words"
+            long:
+              type: integer
+              description: "> 100,000 words"
+        timeSlot:
+          type: object
+          description: Number of texts by 20-year publication period
+          properties:
+            T1:
+              type: integer
+              description: "1840–1859"
+            T2:
+              type: integer
+              description: "1860–1879"
+            T3:
+              type: integer
+              description: "1880–1899"
+            T4:
+              type: integer
+              description: "1900–1919"
+        reprintCount:
+          type: object
+          description: Number of texts by canonicity proxy (known reprints)
+          properties:
+            high:
+              type: integer
+            low:
+              type: integer
+        authorDiversity:
+          type: object
+          description: Author representation diversity
+          properties:
+            singleTextAuthors:
+              type: integer
+              description: Authors contributing exactly 1 text
+            tripleTextAuthors:
+              type: integer
+              description: Authors contributing 3 or more texts
     Corpus:
       type: object
       properties:
@@ -629,6 +691,8 @@ components:
           format: url
         metrics:
           $ref: "#/components/schemas/CorpusMetrics"
+        balance:
+          $ref: "#/components/schemas/BalanceDistribution"
         textsUrl:
           type: string
           format: url
