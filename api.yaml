@@ -22,6 +22,10 @@ tags:
     description: Analyze a text.
   - name: admin
     description: Manage corpora.
+  - name: DTS
+    description: >-
+      Distributed Text Services (DTS) v1.0 API.
+      See https://dtsapi.org/specifications/versions/v1.0/
 
 paths:
   /v1:
@@ -346,6 +350,208 @@ paths:
           description: Returns a plain text document
           content:
             text/plain:
+
+  /v1/dts:
+    get:
+      summary: DTS Entry Point
+      description: >-
+        Provides discovery information for the DTS API endpoints.
+        Returns JSON-LD with URI templates for the Collection, Navigation,
+        and Document endpoints.
+      operationId: dts-entry-point
+      tags: [DTS]
+      responses:
+        "200":
+          description: Returns DTS Entry Point JSON-LD
+          content:
+            application/ld+json:
+              schema:
+                type: object
+              example:
+                {
+                  "@context": "https://dtsapi.org/context/v1.0.json",
+                  "@id": "/v1/dts",
+                  "@type": "EntryPoint",
+                  "dtsVersion": "1.0",
+                  "collection": "/v1/dts/collection{?id,page,nav}",
+                  "navigation": "/v1/dts/navigation{?resource,ref,start,end,down,tree,page}",
+                  "document": "/v1/dts/document{?resource,ref,start,end,tree,mediaType}"
+                }
+
+  /v1/dts/collection:
+    get:
+      summary: DTS Collection
+      description: >-
+        Navigate collections of corpora and texts. Without an `id` parameter,
+        returns the root collection listing all corpora. With an `id`, returns
+        either a corpus (Collection) or a text (Resource).
+      operationId: dts-collection
+      tags: [DTS]
+      parameters:
+        - name: id
+          in: query
+          description: Identifier for a collection (corpus name) or resource (text ID)
+          schema:
+            type: string
+          examples:
+            corpus:
+              value: eltec-deu
+              summary: German corpus
+            resource:
+              value: DEU001
+              summary: A single text
+        - name: page
+          in: query
+          description: Page number for paginated results
+          schema:
+            type: integer
+        - name: nav
+          in: query
+          description: >-
+            Navigation direction. Use "parents" to retrieve the parent
+            collection instead of children.
+          schema:
+            type: string
+            enum: [children, parents]
+            default: children
+      responses:
+        "200":
+          description: Returns a DTS Collection or Resource JSON-LD object
+          content:
+            application/ld+json:
+              schema:
+                type: object
+        "400":
+          description: Invalid parameter value (e.g. bad `nav` value)
+        "404":
+          description: Collection or resource not found
+
+  /v1/dts/navigation:
+    get:
+      summary: DTS Navigation
+      description: >-
+        Navigate within a text's citation tree. Returns CitableUnit objects
+        describing the internal structure of a resource. Use `down` to
+        control depth, `ref` to query a specific node, or `start`/`end`
+        for ranges.
+      operationId: dts-navigation
+      tags: [DTS]
+      parameters:
+        - name: resource
+          in: query
+          required: true
+          description: Identifier of the resource (text ID, e.g. DEU001)
+          schema:
+            type: string
+        - name: ref
+          in: query
+          description: >-
+            XPath-ish identifier of a citation node (e.g. body/div[1]/p[3]).
+            Cannot be combined with `start`/`end`.
+          schema:
+            type: string
+        - name: start
+          in: query
+          description: Range start identifier. Requires `end`.
+          schema:
+            type: string
+        - name: end
+          in: query
+          description: Range end identifier. Requires `start`.
+          schema:
+            type: string
+        - name: down
+          in: query
+          description: >-
+            Maximum depth of the citation subtree to return.
+            Use -1 for full depth, 0 for siblings of `ref`.
+          schema:
+            type: integer
+        - name: tree
+          in: query
+          description: CitationTree identifier (omit for default tree)
+          schema:
+            type: string
+        - name: page
+          in: query
+          description: Page number for paginated results
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Returns a DTS Navigation JSON-LD object with CitableUnits
+          content:
+            application/ld+json:
+              schema:
+                type: object
+        "400":
+          description: >-
+            Bad request (missing `resource`, conflicting parameters,
+            `down=0` without `ref`)
+        "404":
+          description: Resource or citation not found
+
+  /v1/dts/document:
+    get:
+      summary: DTS Document
+      description: >-
+        Retrieve full or partial TEI/XML content of a resource. Without `ref`
+        or `start`/`end`, returns the complete TEI document. With `ref`,
+        returns a fragment wrapped in `<dts:wrapper>`. Supports
+        `mediaType=text/plain` for plain text output.
+      operationId: dts-document
+      tags: [DTS]
+      parameters:
+        - name: resource
+          in: query
+          required: true
+          description: Identifier of the resource (text ID)
+          schema:
+            type: string
+        - name: ref
+          in: query
+          description: >-
+            Citation node identifier for a fragment.
+            Cannot be combined with `start`/`end`.
+          schema:
+            type: string
+        - name: start
+          in: query
+          description: Range start identifier. Requires `end`.
+          schema:
+            type: string
+        - name: end
+          in: query
+          description: Range end identifier. Requires `start`.
+          schema:
+            type: string
+        - name: tree
+          in: query
+          description: CitationTree identifier (omit for default tree)
+          schema:
+            type: string
+        - name: mediaType
+          in: query
+          description: >-
+            Requested response format. Supported values:
+            `application/xml` (default), `text/plain`.
+          schema:
+            type: string
+            enum: [application/xml, text/plain]
+      responses:
+        "200":
+          description: Returns TEI/XML or plain text content
+          content:
+            application/xml:
+              schema:
+                type: string
+            text/plain:
+              schema:
+                type: string
+        "400":
+          description: Bad request (missing `resource`, conflicting parameters)
+        "404":
+          description: Resource, citation, or media type not found
 
 components:
   parameters:
