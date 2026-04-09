@@ -245,7 +245,8 @@ as map() {
       "navigation": $eldts:navigation-base || "?resource=" || $id || "{&amp;ref,start,end,down,tree,page}",
       "totalParents": 1,
       "totalChildren": 0,
-      "extensions": local:resource-extensions($tei)
+      "extensions": local:resource-extensions($tei),
+      "mediaTypes": array { "application/xml", "text/plain" }
     },
     if ($lang or count($authors)) then map:entry(
       "dublinCore", map:merge((
@@ -290,7 +291,8 @@ as map() {
       "totalChildren": 0,
       "download": $download,
       "citationTrees": local:citation-trees($tei),
-      "extensions": local:resource-extensions($tei)
+      "extensions": local:resource-extensions($tei),
+      "mediaTypes": array { "application/xml", "text/plain" }
     },
     if ($lang or count($authors)) then map:entry(
       "dublinCore", map:merge((
@@ -655,7 +657,8 @@ as map() {
       "navigation": $eldts:navigation-base || "?resource=" || $id || "{&amp;ref,start,end,down,tree,page}",
       "document": $eldts:document-base || "?resource=" || $id || "{&amp;ref,start,end,tree,mediaType}",
       "citationTrees": local:citation-trees($tei),
-      "extensions": local:resource-extensions($tei)
+      "extensions": local:resource-extensions($tei),
+      "mediaTypes": array { "application/xml", "text/plain" }
     },
     if ($lang or count($authors)) then map:entry(
       "dublinCore", map:merge((
@@ -1138,21 +1141,41 @@ function eldts:document(
             <description>Resource '{$resource}' does not exist.</description>
           </error>
         )
+      else if ($media-type and $media-type != "application/xml" and $media-type != "text/plain") then
+        (
+          <rest:response><http:response status="404"/></rest:response>,
+          <error statusCode="404" xmlns="https://dtsapi.org/v1.0#">
+            <title>Not Found</title>
+            <description>Media type '{$media-type}' is not available. Supported: application/xml, text/plain.</description>
+          </error>
+        )
       else
         let $collection-link := $eldts:collection-base || "?id=" || $resource
-        let $link-header := '<' || $collection-link || '>; rel="collection"'
+        let $link-header := '&lt;' || $collection-link || '&gt;; rel="collection"'
+        let $is-plain := ($media-type = "text/plain")
         return
           (: full document :)
           if (not($ref) and not($start)) then
-            (
-              <rest:response>
-                <http:response status="200">
-                  <http:header name="Link" value="{$link-header}"/>
-                  <http:header name="Content-Type" value="application/xml"/>
-                </http:response>
-              </rest:response>,
-              $tei
-            )
+            if ($is-plain) then
+              (
+                <rest:response>
+                  <http:response status="200">
+                    <http:header name="Link" value="{$link-header}"/>
+                    <http:header name="Content-Type" value="text/plain; charset=utf-8"/>
+                  </http:response>
+                </rest:response>,
+                local:element-to-plain-text($tei//tei:text)
+              )
+            else
+              (
+                <rest:response>
+                  <http:response status="200">
+                    <http:header name="Link" value="{$link-header}"/>
+                    <http:header name="Content-Type" value="application/xml"/>
+                  </http:response>
+                </rest:response>,
+                $tei
+              )
           (: single fragment by ref :)
           else if ($ref) then
             let $elem := local:resolve-ref-to-element($tei, $ref)
@@ -1164,6 +1187,16 @@ function eldts:document(
                     <title>Not Found</title>
                     <description>Citation '{$ref}' not found in resource '{$resource}'.</description>
                   </error>
+                )
+              else if ($is-plain) then
+                (
+                  <rest:response>
+                    <http:response status="200">
+                      <http:header name="Link" value="{$link-header}"/>
+                      <http:header name="Content-Type" value="text/plain; charset=utf-8"/>
+                    </http:response>
+                  </rest:response>,
+                  local:element-to-plain-text($elem)
                 )
               else
                 (
@@ -1198,31 +1231,44 @@ function eldts:document(
                   </error>
                 )
               else
-                (: get all sibling elements between start and end inclusive :)
                 let $siblings := $start-elem/parent::*/*
                 let $start-pos := count($start-elem/preceding-sibling::*) + 1
                 let $end-pos := count($end-elem/preceding-sibling::*) + 1
                 let $range := $siblings[position() >= $start-pos and position() <= $end-pos]
                 return
-                  (
-                    <rest:response>
-                      <http:response status="200">
-                        <http:header name="Link" value="{$link-header}"/>
-                        <http:header name="Content-Type" value="application/xml"/>
-                      </http:response>
-                    </rest:response>,
-                    <TEI xmlns="http://www.tei-c.org/ns/1.0">
-                      { $tei/tei:teiHeader }
-                      <text>
-                        <body>
-                          <dts:wrapper xmlns:dts="https://dtsapi.org/v1.0#"
-                            start="{$start}" end="{$end}">
-                            { $range }
-                          </dts:wrapper>
-                        </body>
-                      </text>
-                    </TEI>
-                  )
+                  if ($is-plain) then
+                    (
+                      <rest:response>
+                        <http:response status="200">
+                          <http:header name="Link" value="{$link-header}"/>
+                          <http:header name="Content-Type" value="text/plain; charset=utf-8"/>
+                        </http:response>
+                      </rest:response>,
+                      string-join(
+                        for $r in $range return local:element-to-plain-text($r),
+                        "&#xA;&#xA;"
+                      )
+                    )
+                  else
+                    (
+                      <rest:response>
+                        <http:response status="200">
+                          <http:header name="Link" value="{$link-header}"/>
+                          <http:header name="Content-Type" value="application/xml"/>
+                        </http:response>
+                      </rest:response>,
+                      <TEI xmlns="http://www.tei-c.org/ns/1.0">
+                        { $tei/tei:teiHeader }
+                        <text>
+                          <body>
+                            <dts:wrapper xmlns:dts="https://dtsapi.org/v1.0#"
+                              start="{$start}" end="{$end}">
+                              { $range }
+                            </dts:wrapper>
+                          </body>
+                        </text>
+                      </TEI>
+                    )
           else
             (
               <rest:response><http:response status="400"/></rest:response>,
@@ -1231,4 +1277,22 @@ function eldts:document(
                 <description>Invalid parameter combination.</description>
               </error>
             )
+};
+
+(:~
+ : Convert a TEI element to plain text.
+ :
+ : Extracts text from head and p elements, joined by double newlines.
+ : For a single p element, returns its normalized text content.
+ :)
+declare function local:element-to-plain-text($elem as element()) as xs:string {
+  let $name := local-name($elem)
+  return
+    if ($name = "p") then
+      normalize-space($elem)
+    else
+      string-join(
+        $elem//(tei:head|tei:p) ! normalize-space(),
+        "&#xA;&#xA;"
+      )
 };
