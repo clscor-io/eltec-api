@@ -1,0 +1,15 @@
+{
+  "@context": {
+    "eltec": "https://eltec.clscor.io/dtscontext/",
+    "numOfWords": "eltec:numOfWords",
+    "numOfParagraphs": "eltec:numOfParagraphs",
+    "numOfChapters": "eltec:numOfChapters",
+    "numOfTexts": "eltec:numOfTexts",
+    "numOfAuthors": "eltec:numOfAuthors",
+    "wikidataId": "eltec:wikidataId",
+    "authorWikidataIds": {
+      "@id": "eltec:authorWikidataIds",
+      "@container": "@set"
+    }
+  }
+}
