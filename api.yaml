@@ -736,6 +736,27 @@ components:
           format: url
         commit:
           type: string
+        authorGender:
+          type: string
+          description: Gender of the author (ELTeC balance criterion)
+          enum: [M, F]
+        sizeCategory:
+          type: string
+          description: Word-count bracket (ELTeC balance criterion)
+          enum: [short, medium, long]
+        timeSlot:
+          type: string
+          description: 20-year publication period (ELTeC balance criterion)
+          enum: [T1, T2, T3, T4]
+        reprintCount:
+          type: string
+          description: Canonicity proxy based on known reprints (ELTeC balance criterion)
+          enum: [low, high]
+        referenceYear:
+          type: string
+          description: >-
+            Reference year for the text, derived by priority:
+            first edition > print source > digital source date.
       required:
         - id
         - name
