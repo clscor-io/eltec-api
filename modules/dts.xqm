@@ -1055,3 +1055,178 @@ declare function local:get-siblings(
     else
       local:get-citable-children($tei, $parent-ref)
 };
+
+
+(:
+ : --------------------
+ : Document Endpoint
+ : --------------------
+ :
+ : https://dtsapi.org/specifications/versions/v1.0/#document-endpoint
+ :)
+
+(:~
+ : DTS Document Endpoint
+ :
+ : Retrieve full or partial TEI/XML content of a resource.
+ :
+ : @param $resource Identifier of the resource (required)
+ : @param $ref Single citation node identifier
+ : @param $start Range start identifier
+ : @param $end Range end identifier
+ : @param $tree CitationTree identifier
+ : @param $media-type Requested media type
+ : @result TEI/XML
+ :)
+declare
+  %rest:GET
+  %rest:path("/eltec/v1/dts/document")
+  %rest:query-param("resource", "{$resource}")
+  %rest:query-param("ref", "{$ref}")
+  %rest:query-param("start", "{$start}")
+  %rest:query-param("end", "{$end}")
+  %rest:query-param("tree", "{$tree}")
+  %rest:query-param("mediaType", "{$media-type}")
+  %rest:produces("application/tei+xml", "application/xml")
+  %output:media-type("application/xml")
+  %output:method("xml")
+function eldts:document(
+  $resource as xs:string*,
+  $ref as xs:string*,
+  $start as xs:string*,
+  $end as xs:string*,
+  $tree as xs:string*,
+  $media-type as xs:string*
+) as item()+ {
+  (: resource is required :)
+  if (not($resource) or $resource = "") then
+    (
+      <rest:response><http:response status="400"/></rest:response>,
+      <error statusCode="400" xmlns="https://dtsapi.org/v1.0#">
+        <title>Bad Request</title>
+        <description>Parameter 'resource' is required.</description>
+      </error>
+    )
+  (: ref cannot combine with start/end :)
+  else if ($ref and ($start or $end)) then
+    (
+      <rest:response><http:response status="400"/></rest:response>,
+      <error statusCode="400" xmlns="https://dtsapi.org/v1.0#">
+        <title>Bad Request</title>
+        <description>Parameter 'ref' cannot be combined with 'start' and 'end'.</description>
+      </error>
+    )
+  (: start requires end and vice versa :)
+  else if (($start and not($end)) or ($end and not($start))) then
+    (
+      <rest:response><http:response status="400"/></rest:response>,
+      <error statusCode="400" xmlns="https://dtsapi.org/v1.0#">
+        <title>Bad Request</title>
+        <description>Parameters 'start' and 'end' must be used together.</description>
+      </error>
+    )
+  else
+    let $tei := collection($config:corpora-root)//tei:TEI[@xml:id = $resource]
+    return
+      if (not($tei)) then
+        (
+          <rest:response><http:response status="404"/></rest:response>,
+          <error statusCode="404" xmlns="https://dtsapi.org/v1.0#">
+            <title>Not Found</title>
+            <description>Resource '{$resource}' does not exist.</description>
+          </error>
+        )
+      else
+        let $collection-link := $eldts:collection-base || "?id=" || $resource
+        let $link-header := '<' || $collection-link || '>; rel="collection"'
+        return
+          (: full document :)
+          if (not($ref) and not($start)) then
+            (
+              <rest:response>
+                <http:response status="200">
+                  <http:header name="Link" value="{$link-header}"/>
+                  <http:header name="Content-Type" value="application/xml"/>
+                </http:response>
+              </rest:response>,
+              $tei
+            )
+          (: single fragment by ref :)
+          else if ($ref) then
+            let $elem := local:resolve-ref-to-element($tei, $ref)
+            return
+              if (empty($elem)) then
+                (
+                  <rest:response><http:response status="404"/></rest:response>,
+                  <error statusCode="404" xmlns="https://dtsapi.org/v1.0#">
+                    <title>Not Found</title>
+                    <description>Citation '{$ref}' not found in resource '{$resource}'.</description>
+                  </error>
+                )
+              else
+                (
+                  <rest:response>
+                    <http:response status="200">
+                      <http:header name="Link" value="{$link-header}"/>
+                      <http:header name="Content-Type" value="application/xml"/>
+                    </http:response>
+                  </rest:response>,
+                  <TEI xmlns="http://www.tei-c.org/ns/1.0">
+                    { $tei/tei:teiHeader }
+                    <text>
+                      <body>
+                        <dts:wrapper xmlns:dts="https://dtsapi.org/v1.0#" ref="{$ref}">
+                          { $elem }
+                        </dts:wrapper>
+                      </body>
+                    </text>
+                  </TEI>
+                )
+          (: range by start/end :)
+          else if ($start and $end) then
+            let $start-elem := local:resolve-ref-to-element($tei, $start)
+            let $end-elem := local:resolve-ref-to-element($tei, $end)
+            return
+              if (empty($start-elem) or empty($end-elem)) then
+                (
+                  <rest:response><http:response status="404"/></rest:response>,
+                  <error statusCode="404" xmlns="https://dtsapi.org/v1.0#">
+                    <title>Not Found</title>
+                    <description>Range citations not found in resource '{$resource}'.</description>
+                  </error>
+                )
+              else
+                (: get all sibling elements between start and end inclusive :)
+                let $siblings := $start-elem/parent::*/*
+                let $start-pos := count($start-elem/preceding-sibling::*) + 1
+                let $end-pos := count($end-elem/preceding-sibling::*) + 1
+                let $range := $siblings[position() >= $start-pos and position() <= $end-pos]
+                return
+                  (
+                    <rest:response>
+                      <http:response status="200">
+                        <http:header name="Link" value="{$link-header}"/>
+                        <http:header name="Content-Type" value="application/xml"/>
+                      </http:response>
+                    </rest:response>,
+                    <TEI xmlns="http://www.tei-c.org/ns/1.0">
+                      { $tei/tei:teiHeader }
+                      <text>
+                        <body>
+                          <dts:wrapper xmlns:dts="https://dtsapi.org/v1.0#"
+                            start="{$start}" end="{$end}">
+                            { $range }
+                          </dts:wrapper>
+                        </body>
+                      </text>
+                    </TEI>
+                  )
+          else
+            (
+              <rest:response><http:response status="400"/></rest:response>,
+              <error statusCode="400" xmlns="https://dtsapi.org/v1.0#">
+                <title>Bad Request</title>
+                <description>Invalid parameter combination.</description>
+              </error>
+            )
+};
