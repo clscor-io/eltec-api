@@ -670,6 +670,52 @@ components:
             tripleTextAuthors:
               type: integer
               description: Authors contributing 3 or more texts
+    E5CScore:
+      type: object
+      description: >-
+        ELTeC Corpus Composition Conformance (E5C) score. A weighted composite
+        of 8 sub-scores measuring how well a corpus meets the ELTeC balance
+        criteria. Formula: (text*3 + female*2 + single + triple + short + long
+        + range*2 + reprint*2) / 13 * 10. Maximum theoretical score is ~85.
+      properties:
+        e5c:
+          type: number
+          description: Composite E5C conformance score
+        class:
+          type: string
+          description: >-
+            Corpus classification based on text count and E5C score.
+            "core" = 100+ texts, "plus" = fewer texts but E5C > 1,
+            "extended" = low conformance or language extension corpus.
+          enum: [core, plus, extended]
+        subscores:
+          type: object
+          description: Individual sub-scores (each on a 0-11 scale)
+          properties:
+            text:
+              type: number
+              description: "Text count score (weight 3x). 10 = 100+ texts."
+            female:
+              type: number
+              description: "Female author percentage score (weight 2x). Optimal: 40-60%."
+            single:
+              type: number
+              description: "Single-text author percentage score (weight 1x). Optimal: 60-74%."
+            triple:
+              type: number
+              description: "Triple-text author percentage score (weight 1x). Optimal: 27-34%."
+            short:
+              type: number
+              description: "Short text percentage score (weight 1x). Optimal: 20-37%."
+            long:
+              type: number
+              description: "Long text percentage score (weight 1x). Optimal: 20-37%."
+            range:
+              type: number
+              description: "Time slot range score (weight 2x). Lower spread = higher score."
+            reprint:
+              type: number
+              description: "Low reprint percentage score (weight 2x). Optimal: 30-60%."
     Corpus:
       type: object
       properties:
@@ -693,6 +739,8 @@ components:
           $ref: "#/components/schemas/CorpusMetrics"
         balance:
           $ref: "#/components/schemas/BalanceDistribution"
+        e5c:
+          $ref: "#/components/schemas/E5CScore"
         textsUrl:
           type: string
           format: url

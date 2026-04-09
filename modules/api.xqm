@@ -6,6 +6,7 @@ import module namespace config = "http://eltec.clscor.io/ns/exist/config" at "co
 import module namespace elutil = "http://eltec.clscor.io/ns/exist/util" at "util.xqm";
 import module namespace eltei = "http://eltec.clscor.io/ns/exist/tei" at "tei.xqm";
 import module namespace metrics = "http://eltec.clscor.io/ns/exist/metrics" at "metrics.xqm";
+import module namespace e5c = "http://eltec.clscor.io/ns/exist/e5c" at "e5c.xqm";
 
 declare namespace rest = "http://exquery.org/ns/restxq";
 declare namespace http = "http://expath.org/ns/http-client";
@@ -97,7 +98,8 @@ function api:corpora() {
       $info,
       map:entry("uri", $config:api-base || '/corpora/' || $name),
       map:entry("metrics", metrics:corpus($name)),
-      map:entry("balance", metrics:corpus-balance($name))
+      map:entry("balance", metrics:corpus-balance($name)),
+      map:entry("e5c", e5c:calculate($name))
     ))
   }
 };
@@ -268,7 +270,8 @@ function api:corpus-data($corpusname) {
       map:merge((
         $corpus,
         map {"metrics": $metrics},
-        map {"balance": metrics:corpus-balance($corpusname)}
+        map {"balance": metrics:corpus-balance($corpusname)},
+        map {"e5c": e5c:calculate($corpusname)}
       ))
 };
 
