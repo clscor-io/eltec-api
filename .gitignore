@@ -3,3 +3,5 @@ build/
 .existdb.json
 expath-pkg.xml
 *.xar
+.DS_Store
+dts-notes/
