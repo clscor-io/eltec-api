@@ -11,8 +11,7 @@ info:
     url: "https://github.com/clscor-io/eltec-api/blob/main/LICENSE"
 
 servers:
-  - description: Production
-    url: https://eltec.clscor.io/api
+  - url: https://eltec.clscor.io/api
 
 tags:
   - name: meta
