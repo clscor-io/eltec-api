@@ -22,6 +22,8 @@ tags:
     description: Analyze a text.
   - name: admin
     description: Manage corpora.
+  - name: search
+    description: Full-text search across ELTeC corpora.
   - name: DTS
     description: >-
       Distributed Text Services (DTS) v1.0 API.
@@ -350,6 +352,82 @@ paths:
           description: Returns a plain text document
           content:
             text/plain:
+
+  /v1/search:
+    get:
+      summary: Full-text search
+      description: >-
+        Search across ELTeC corpora at paragraph level using Lucene full-text
+        indexing. Returns matching paragraphs with KWIC context and citable
+        unit identifiers compatible with the DTS Navigation and Document
+        endpoints.
+      operationId: search
+      tags: [search]
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Search query string (passed to Lucene full-text search)
+          schema:
+            type: string
+          example: castle
+        - name: corpus
+          in: query
+          description: >-
+            Corpus name to restrict search to a single corpus.
+            If omitted, searches across all loaded corpora.
+          schema:
+            type: string
+          example: eltec-eng
+        - name: id
+          in: query
+          description: >-
+            Text identifier to restrict search to a single text
+            (e.g. DEU001). Can be combined with `corpus`.
+          schema:
+            type: string
+          example: ENG18400
+        - name: limit
+          in: query
+          description: Number of results to return per page
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          description: Zero-based offset for pagination
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Returns search results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SearchResponse"
+              example:
+                {
+                  "query": "castle",
+                  "totalHits": 507,
+                  "offset": 0,
+                  "limit": 20,
+                  "results": [
+                    {
+                      "id": "ENG18400",
+                      "name": "eng18400",
+                      "corpus": "eltec-eng",
+                      "title": "The Heir of Redclyffe : ELTeC edition",
+                      "authors": [{"name": "Yonge, Charlotte Mary"}],
+                      "citableUnit": "body/div[29]/p[1]",
+                      "kwic": "...repairing and beautifying my old castle — you would certainly call it a ca..."
+                    }
+                  ]
+                }
+        "400":
+          description: Missing required parameter `q`
+        "404":
+          description: Specified corpus not found
 
   /v1/dts:
     get:
@@ -877,6 +955,68 @@ components:
         - corpus
         - metrics
         - corpusUrl
+    SearchResponse:
+      type: object
+      properties:
+        query:
+          type: string
+          description: The search query that was executed
+        totalHits:
+          type: integer
+          description: Total number of matching paragraphs
+        offset:
+          type: integer
+          description: Zero-based offset of the current page
+        limit:
+          type: integer
+          description: Number of results per page
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/SearchHit"
+    SearchHit:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Text identifier (e.g. DEU001)
+        name:
+          type: string
+          description: Text name / slug (e.g. deu001)
+        corpus:
+          type: string
+          description: Corpus name (e.g. eltec-deu)
+        title:
+          type: string
+          description: Text title
+        authors:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+        kwic:
+          type: string
+          description: Keyword-in-context snippet showing the match
+        collection:
+          type: string
+          format: url
+          description: >-
+            URL to the DTS Collection endpoint for the text
+            containing the match
+        document:
+          type: string
+          format: url
+          description: >-
+            URL to the DTS Document endpoint to retrieve the
+            matching paragraph as TEI/XML
+        navigation:
+          type: string
+          format: url
+          description: >-
+            URL to the DTS Navigation endpoint for the matching
+            paragraph's citation context
     Occurrence:
       type: object
       properties:
