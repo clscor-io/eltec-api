@@ -160,7 +160,7 @@ as map() {
     "@id": "eltec",
     "@type": "Collection",
     "dtsVersion": $eldts:spec-version,
-    "collection": $eldts:collection-base || "/{?id,page,nav}",
+    "collection": $eldts:collection-base || "{?id,page,nav}",
     "title": "ELTeC Corpora",
     "totalParents": 0,
     "totalChildren": count($members?*),
@@ -318,7 +318,7 @@ as map() {
     "@id": "eltec",
     "@type": "Collection",
     "title": "ELTeC Corpora",
-    "collection": $eldts:collection-base || "/{?id,page,nav}",
+    "collection": $eldts:collection-base || "{?id,page,nav}",
     "totalParents": 0,
     "totalChildren": count(collection($config:corpora-root)//tei:teiCorpus)
   }
@@ -610,6 +610,12 @@ function eldts:navigation(
     (
       <rest:response><http:response status="400"/></rest:response>,
       map { "error": "Bad Request", "message": "Parameters 'start' and 'end' must be used together." }
+    )
+  (: down=0 with start/end is not allowed :)
+  else if ($down = "0" and ($start or $end)) then
+    (
+      <rest:response><http:response status="400"/></rest:response>,
+      map { "error": "Bad Request", "message": "Parameter 'down=0' cannot be combined with 'start'/'end'." }
     )
   (: down=0 requires ref :)
   else if ($down = "0" and not($ref)) then
