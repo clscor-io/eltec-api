@@ -375,7 +375,7 @@ paths:
                   "dtsVersion": "1.0",
                   "collection": "/v1/dts/collection{?id,page,nav}",
                   "navigation": "/v1/dts/navigation{?resource,ref,start,end,down,tree,page}",
-                  "document": "/v1/dts/document{?resource,ref,start,end,tree,mediaType}"
+                  "document": "/v1/dts/document{?resource,ref,start,end,tree,mediaType}",
                 }
 
   /v1/dts/collection:
@@ -677,6 +677,7 @@ components:
         of 8 sub-scores measuring how well a corpus meets the ELTeC balance
         criteria. Formula: (text*3 + female*2 + single + triple + short + long
         + range*2 + reprint*2) / 13 * 10. Maximum theoretical score is ~85.
+        See also https://github.com/distantreading/WG1/wiki/E5C-discussion-paper
       properties:
         e5c:
           type: number

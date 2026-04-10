@@ -8,6 +8,8 @@ xquery version "3.1";
  :
  : The E5C score is a weighted composite of 8 sub-scores measuring how well
  : a corpus meets the ELTeC balance criteria.
+ :
+ : Also see https://github.com/distantreading/WG1/wiki/E5C-discussion-paper
  :)
 module namespace e5c = "http://eltec.clscor.io/ns/exist/e5c";
 
