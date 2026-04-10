@@ -129,9 +129,9 @@ paths:
                   description: Git repository URL
             example: |
               {
-                "name": "en",
+                "name": "eng",
                 "title": "English Novel Corpus",
-                "repository": "https://github.com/dracor-org/eco_en"
+                "repository": "https://github.com/COST-ELTeC/ELTeC-eng"
               }
           application/xml:
             schema:
@@ -363,7 +363,7 @@ components:
           value: eng
           summary: English Novel Corpus
         GermanNovelCorpus:
-          value: ger
+          value: deu
           summary: German Novel Corpus
     textname:
       name: textname
