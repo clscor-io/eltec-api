@@ -9,6 +9,7 @@ import module namespace config = "http://eltec.clscor.io/ns/exist/config" at "co
 import module namespace elutil = "http://eltec.clscor.io/ns/exist/util" at "util.xqm";
 
 declare namespace tei = "http://www.tei-c.org/ns/1.0";
+declare namespace eltec = "http://distantreading.net/eltec/ns";
 
 (: Separator for word count tokenization :)
 declare variable $metrics:separator := "\W+";
@@ -68,6 +69,61 @@ declare function metrics:corpus ($corpus as xs:string) {
     "numOfAuthors": count(distinct-values($col//tei:titleStmt//tei:author)),
     "numOfParagraphs": count($col//tei:body//tei:p),
     "numOfWords": sum($col//words)
+  }
+};
+
+(:~
+ : Corpus balance distributions.
+ :
+ : Computes distribution counts for the four ELTeC balance criteria
+ : plus author diversity metrics.
+ :
+ : @param $corpus Corpus name
+ : @return map with gender, size, timeSlot, reprintCount, authorDiversity
+ :)
+declare function metrics:corpus-balance($corpus as xs:string) as map() {
+  let $col := collection(concat($config:corpora-root, "/", $corpus))
+  let $textDescs := $col//tei:profileDesc/tei:textDesc
+
+  (: Gender distribution :)
+  let $male := count($textDescs/eltec:authorGender[@key = 'M'])
+  let $female := count($textDescs/eltec:authorGender[@key = 'F'])
+
+  (: Size distribution :)
+  let $short := count($textDescs/eltec:size[@key = 'short'])
+  let $medium := count($textDescs/eltec:size[@key = 'medium'])
+  let $long := count($textDescs/eltec:size[@key = 'long'])
+
+  (: Time slot distribution :)
+  let $t1 := count($textDescs/eltec:timeSlot[@key = 'T1'])
+  let $t2 := count($textDescs/eltec:timeSlot[@key = 'T2'])
+  let $t3 := count($textDescs/eltec:timeSlot[@key = 'T3'])
+  let $t4 := count($textDescs/eltec:timeSlot[@key = 'T4'])
+
+  (: Reprint count distribution (support legacy canonicity element) :)
+  let $high := count($textDescs/eltec:reprintCount[@key = 'high'])
+    + count($textDescs/eltec:canonicity[@key = 'high'])
+  let $low := count($textDescs/eltec:reprintCount[@key = 'low'])
+    + count($textDescs/eltec:canonicity[@key = 'low'])
+
+  (: Author diversity :)
+  let $authors := $col//tei:titleStmt/tei:author[1]
+  let $authorGroups :=
+    for $a in distinct-values($authors ! normalize-space(.))
+    let $count := count($authors[normalize-space(.) = $a])
+    return $count
+  let $singleAuthors := count($authorGroups[. = 1])
+  let $tripleAuthors := count($authorGroups[. >= 3])
+
+  return map {
+    "gender": map { "M": $male, "F": $female },
+    "size": map { "short": $short, "medium": $medium, "long": $long },
+    "timeSlot": map { "T1": $t1, "T2": $t2, "T3": $t3, "T4": $t4 },
+    "reprintCount": map { "high": $high, "low": $low },
+    "authorDiversity": map {
+      "singleTextAuthors": $singleAuthors,
+      "tripleTextAuthors": $tripleAuthors
+    }
   }
 };
 

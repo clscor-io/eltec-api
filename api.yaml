@@ -375,7 +375,7 @@ paths:
                   "dtsVersion": "1.0",
                   "collection": "/v1/dts/collection{?id,page,nav}",
                   "navigation": "/v1/dts/navigation{?resource,ref,start,end,down,tree,page}",
-                  "document": "/v1/dts/document{?resource,ref,start,end,tree,mediaType}"
+                  "document": "/v1/dts/document{?resource,ref,start,end,tree,mediaType}",
                 }
 
   /v1/dts/collection:
@@ -608,6 +608,115 @@ components:
           type: integer
         numOfAuthors:
           type: integer
+    BalanceDistribution:
+      type: object
+      description: >-
+        Distribution counts for the ELTeC corpus balance criteria.
+      properties:
+        gender:
+          type: object
+          description: Number of texts by author gender
+          properties:
+            M:
+              type: integer
+              description: Texts by male authors
+            F:
+              type: integer
+              description: Texts by female authors
+        size:
+          type: object
+          description: Number of texts by word-count bracket
+          properties:
+            short:
+              type: integer
+              description: "< 50,000 words"
+            medium:
+              type: integer
+              description: "50,000 – 100,000 words"
+            long:
+              type: integer
+              description: "> 100,000 words"
+        timeSlot:
+          type: object
+          description: Number of texts by 20-year publication period
+          properties:
+            T1:
+              type: integer
+              description: "1840–1859"
+            T2:
+              type: integer
+              description: "1860–1879"
+            T3:
+              type: integer
+              description: "1880–1899"
+            T4:
+              type: integer
+              description: "1900–1919"
+        reprintCount:
+          type: object
+          description: Number of texts by canonicity proxy (known reprints)
+          properties:
+            high:
+              type: integer
+            low:
+              type: integer
+        authorDiversity:
+          type: object
+          description: Author representation diversity
+          properties:
+            singleTextAuthors:
+              type: integer
+              description: Authors contributing exactly 1 text
+            tripleTextAuthors:
+              type: integer
+              description: Authors contributing 3 or more texts
+    E5CScore:
+      type: object
+      description: >-
+        ELTeC Corpus Composition Conformance (E5C) score. A weighted composite
+        of 8 sub-scores measuring how well a corpus meets the ELTeC balance
+        criteria. Formula: (text*3 + female*2 + single + triple + short + long
+        + range*2 + reprint*2) / 13 * 10. Maximum theoretical score is ~85.
+        See also https://github.com/distantreading/WG1/wiki/E5C-discussion-paper
+      properties:
+        e5c:
+          type: number
+          description: Composite E5C conformance score
+        class:
+          type: string
+          description: >-
+            Corpus classification based on text count and E5C score.
+            "core" = 100+ texts, "plus" = fewer texts but E5C > 1,
+            "extended" = low conformance or language extension corpus.
+          enum: [core, plus, extended]
+        subscores:
+          type: object
+          description: Individual sub-scores (each on a 0-11 scale)
+          properties:
+            text:
+              type: number
+              description: "Text count score (weight 3x). 10 = 100+ texts."
+            female:
+              type: number
+              description: "Female author percentage score (weight 2x). Optimal: 40-60%."
+            single:
+              type: number
+              description: "Single-text author percentage score (weight 1x). Optimal: 60-74%."
+            triple:
+              type: number
+              description: "Triple-text author percentage score (weight 1x). Optimal: 27-34%."
+            short:
+              type: number
+              description: "Short text percentage score (weight 1x). Optimal: 20-37%."
+            long:
+              type: number
+              description: "Long text percentage score (weight 1x). Optimal: 20-37%."
+            range:
+              type: number
+              description: "Time slot range score (weight 2x). Lower spread = higher score."
+            reprint:
+              type: number
+              description: "Low reprint percentage score (weight 2x). Optimal: 30-60%."
     Corpus:
       type: object
       properties:
@@ -629,6 +738,10 @@ components:
           format: url
         metrics:
           $ref: "#/components/schemas/CorpusMetrics"
+        balance:
+          $ref: "#/components/schemas/BalanceDistribution"
+        e5c:
+          $ref: "#/components/schemas/E5CScore"
         textsUrl:
           type: string
           format: url
@@ -736,6 +849,27 @@ components:
           format: url
         commit:
           type: string
+        authorGender:
+          type: string
+          description: Gender of the author (ELTeC balance criterion)
+          enum: [M, F]
+        sizeCategory:
+          type: string
+          description: Word-count bracket (ELTeC balance criterion)
+          enum: [short, medium, long]
+        timeSlot:
+          type: string
+          description: 20-year publication period (ELTeC balance criterion)
+          enum: [T1, T2, T3, T4]
+        reprintCount:
+          type: string
+          description: Canonicity proxy based on known reprints (ELTeC balance criterion)
+          enum: [low, high]
+        referenceYear:
+          type: string
+          description: >-
+            Reference year for the text, derived by priority:
+            first edition > print source > digital source date.
       required:
         - id
         - name

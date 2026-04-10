@@ -1,7 +1,7 @@
 xquery version "3.1";
 
 (:~
- : Module providing TEI extraction functions for eltec.
+ : Module providing TEI extraction functions for ELTeC.
  :)
 module namespace eltei = "http://eltec.clscor.io/ns/exist/tei";
 
@@ -10,6 +10,7 @@ import module namespace elutil = "http://eltec.clscor.io/ns/exist/util" at "util
 import module namespace metrics = "http://eltec.clscor.io/ns/exist/metrics" at "metrics.xqm";
 
 declare namespace tei = "http://www.tei-c.org/ns/1.0";
+declare namespace eltec = "http://distantreading.net/eltec/ns";
 
 declare variable $eltei:ids := doc('/db/eltec/ids.xml');
 declare variable $eltei:authors := doc('/db/eltec/authors.xml');
@@ -98,6 +99,59 @@ declare function eltei:get-text-wikidata-id ($tei as element(tei:TEI)) {
   return if (starts-with($uri, 'http://www.wikidata.org/entity/')) then
     tokenize($uri, '/')[last()]
   else ()
+};
+
+(:~
+ : Extract ELTeC classification metadata.
+ :
+ : Returns the four balance criteria from the eltec: namespace elements
+ : under tei:profileDesc/tei:textDesc.
+ :
+ : @param $tei TEI element
+ : @return map with authorGender, sizeCategory, timeSlot, reprintCount
+ :)
+declare function eltei:get-eltec-classification(
+  $tei as element(tei:TEI)
+) as map() {
+  let $textDesc := $tei//tei:profileDesc/tei:textDesc
+  return map:merge((
+    if ($textDesc/eltec:authorGender/@key)
+      then map:entry("authorGender", string($textDesc/eltec:authorGender/@key))
+      else (),
+    if ($textDesc/eltec:size/@key)
+      then map:entry("sizeCategory", string($textDesc/eltec:size/@key))
+      else (),
+    if ($textDesc/eltec:timeSlot/@key)
+      then map:entry("timeSlot", string($textDesc/eltec:timeSlot/@key))
+      else (),
+    if ($textDesc/eltec:reprintCount/@key)
+      then map:entry("reprintCount", string($textDesc/eltec:reprintCount/@key))
+      else if ($textDesc/eltec:canonicity/@key)
+      then map:entry("reprintCount", string($textDesc/eltec:canonicity/@key))
+      else ()
+  ))
+};
+
+(:~
+ : Extract a reference year for a text.
+ :
+ : Priority: first edition > print source > digital source.
+ :
+ : @param $tei TEI element
+ : @return year string or empty
+ :)
+declare function eltei:get-reference-year(
+  $tei as element(tei:TEI)
+) as xs:string? {
+  let $sourceDesc := $tei/tei:teiHeader/tei:fileDesc/tei:sourceDesc
+  let $firstEd := $sourceDesc//tei:bibl[@type='firstEdition']/tei:date
+  let $printSrc := $sourceDesc//tei:bibl[@type='printSource']/tei:date
+  let $digitalSrc := $sourceDesc//tei:bibl[@type='digitalSource']/tei:date
+  return
+    if ($firstEd) then eltei:get-year($firstEd[1])
+    else if ($printSrc) then eltei:get-year($printSrc[1])
+    else if ($digitalSrc) then eltei:get-year($digitalSrc[1])
+    else ()
 };
 
 (:~
@@ -396,7 +450,11 @@ declare function eltei:get-text-info($tei as element(tei:TEI)) as map()? {
       map:entry("metrics", metrics:text($paths?corpusname, $paths?textname)),
       map:entry(
         "corpusUrl", $config:api-base || "/corpora/" || $paths?corpusname
-      )
+      ),
+      eltei:get-eltec-classification($tei),
+      if (eltei:get-reference-year($tei))
+        then map:entry("referenceYear", eltei:get-reference-year($tei))
+        else ()
     ))
   else ()
 };
