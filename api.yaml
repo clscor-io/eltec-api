@@ -666,30 +666,62 @@ components:
   schemas:
     Info:
       type: object
+      title: API Info
+      x-eltec-api-function: "api:base"
+      description: >-
+        Information about the running ELTeC API instance, including its
+        own version, the underlying eXist-db version, and the base URL
+        under which the API is served.
       properties:
-        version:
-          type: string
         name:
           type: string
-        status:
+          description: The application name (from the EXPath package descriptor)
+        version:
           type: string
+          description: The version of the eltec-api application
         existdb:
           type: string
+          description: The version of the underlying eXist-db installation
+        base:
+          type: string
+          format: url
+          description: The base URL under which this API is served
     CorpusMetrics:
       type: object
+      title: Corpus Metrics
+      x-eltec-api-function: "metrics:corpus"
+      description: >-
+        Aggregate statistics for a corpus, computed by counting elements
+        across all TEI documents in the corpus collection. Word counts
+        are aggregated from cached per-text metrics.
       properties:
         numOfTexts:
           type: integer
-        numOfParagraphs:
-          type: integer
-        numOfWords:
-          type: integer
+          description: Total number of TEI documents in the corpus
         numOfAuthors:
           type: integer
+          description: >-
+            Number of distinct authors across all texts (counted by
+            distinct-values of `tei:titleStmt/tei:author` content)
+        numOfParagraphs:
+          type: integer
+          description: >-
+            Total number of `tei:p` elements in the body of all texts
+        numOfWords:
+          type: integer
+          description: >-
+            Sum of word counts across all texts (aggregated from cached
+            per-text metrics, calculated by tokenizing `tei:text` on `\W+`)
     BalanceDistribution:
       type: object
+      title: Corpus Balance Distribution
+      x-eltec-api-function: "metrics:corpus-balance"
       description: >-
-        Distribution counts for the ELTeC corpus balance criteria.
+        Distribution counts for the four ELTeC balance criteria
+        (`eltec:authorGender`, `eltec:size`, `eltec:timeSlot`,
+        `eltec:reprintCount`) plus author diversity metrics.
+        Computed from elements in the `eltec:` namespace under
+        `tei:profileDesc/tei:textDesc`.
       properties:
         gender:
           type: object
@@ -750,6 +782,8 @@ components:
               description: Authors contributing 3 or more texts
     E5CScore:
       type: object
+      title: E5C Conformance Score
+      x-eltec-api-function: "e5c:calculate"
       description: >-
         ELTeC Corpus Composition Conformance (E5C) score. A weighted composite
         of 8 sub-scores measuring how well a corpus meets the ELTeC balance
@@ -797,36 +831,70 @@ components:
               description: "Low reprint percentage score (weight 2x). Optimal: 30-60%."
     Corpus:
       type: object
+      title: Corpus
+      x-eltec-api-function: "eltei:get-corpus-info"
+      description: >-
+        Metadata for an ELTeC corpus, extracted from the `tei:teiCorpus`
+        document at the root of the corpus collection. Includes basic
+        bibliographic information, source repository, license, and
+        aggregate metrics.
       properties:
         name:
           type: string
+          description: >-
+            Short corpus identifier (lowercase ASCII), e.g. `eltec-deu`.
+            Taken from `tei:publicationStmt/tei:idno` (without `@type`).
         title:
           type: string
+          description: >-
+            Human-readable corpus title from `tei:titleStmt/tei:title`
         acronym:
           type: string
+          description: >-
+            Short acronym from `tei:titleStmt/tei:title[@type="acronym"]`
         description:
           type: string
+          description: >-
+            Markdown-rendered description from
+            `tei:encodingDesc/tei:projectDesc`
         repository:
           type: string
           format: url
+          description: >-
+            Source GitHub repository URL from
+            `tei:publicationStmt/tei:idno[@type="repo"]`
         licence:
           type: string
+          description: License name from `tei:availability/tei:licence`
         licenceUrl:
           type: string
           format: url
+          description: License URL from `tei:availability/tei:licence/@target`
         metrics:
           $ref: "#/components/schemas/CorpusMetrics"
         balance:
           $ref: "#/components/schemas/BalanceDistribution"
         e5c:
           $ref: "#/components/schemas/E5CScore"
+        uri:
+          type: string
+          format: url
+          description: URL of the corpus resource itself
         textsUrl:
           type: string
           format: url
+          description: URL to the corpus texts list endpoint
         updated:
           type: string
+          format: date-time
+          description: >-
+            Timestamp of the most recent metrics update across all texts
+            (max `@updated` value across the texts' `metrics.xml` files)
         commit:
           type: string
+          description: >-
+            Git commit SHA of the loaded corpus version. Only present if
+            all texts in the corpus share the same SHA.
       required:
         - name
         - title
@@ -842,51 +910,104 @@ components:
           type: string
     TextMetrics:
       type: object
+      title: Text Metrics
+      x-eltec-api-function: "metrics:text"
+      description: >-
+        Per-text statistics computed from the TEI document and the cached
+        `metrics.xml` file alongside it.
       properties:
         numOfChapters:
           type: integer
+          description: >-
+            Number of `tei:div[@type="chapter"]` elements in the text
         numOfParagraphs:
           type: integer
+          description: >-
+            Number of `tei:p` elements in the body of the text
         numOfWords:
           type: integer
+          description: >-
+            Word count (cached). Calculated by tokenizing the
+            `tei:text` content on `\W+`.
     References:
-      description: An array of external references, e.g. VIAF, GND or Wikidata IDs
       type: array
+      title: External References
+      x-eltec-api-function: "eltei:get-refs"
+      description: >-
+        Array of external authority identifiers in prefixed form
+        (e.g. `wikidata:Q12345`, `viaf:12345`, `gnd:11865103X`).
+        Extracted from `@ref` attributes on author or title elements,
+        augmented from the local `authors.xml` and `ids.xml` lookup
+        tables where the source TEI lacks Wikidata IDs.
       items:
         type: string
-        format: url
+        description: Prefixed authority identifier
     Author:
       type: object
+      title: Author
+      x-eltec-api-function: "eltei:get-authors"
+      description: >-
+        Author of a text, extracted from `tei:titleStmt/tei:author` in
+        the TEI header. The ELTeC convention encodes the name as
+        `"Name (birth-death)"`; the parser splits on ` (` to get the
+        name. Authority references are augmented from the local
+        `authors.xml` lookup table where the source TEI lacks Wikidata IDs.
       properties:
         name:
           type: string
+          description: >-
+            Author name (the ELTeC convention is "Surname, Forename")
         refs:
           $ref: "#/components/schemas/References"
         gender:
           type: string
+          description: >-
+            **Note:** Currently declared but NOT extracted by
+            `eltei:get-authors`. Author gender is encoded at the text
+            level via `eltec:authorGender` and exposed on the `Text`
+            schema as `authorGender`.
       required:
         - name
     Source:
       type: object
+      title: Bibliographic Source
+      x-eltec-api-function: "eltei:get-sources"
+      description: >-
+        A bibliographic source for a text, extracted from
+        `tei:teiHeader/tei:fileDesc/tei:sourceDesc/tei:bibl`.
+        A text typically has multiple sources covering the digital
+        edition, the print source, and the first edition.
       properties:
         bibl:
           type: string
-          description: Full normalized text of the bibl element
+          description: Full normalized text of the `tei:bibl` element
         type:
           type: string
-          description: Source type, e.g. "digitalSource", "printSource", or "firstEdition"
+          description: >-
+            Source type from `@type`, typically `digitalSource`,
+            `printSource`, or `firstEdition`
         author:
           type: string
+          description: First `tei:author` from the `tei:bibl`
         title:
           type: string
+          description: First `tei:title` from the `tei:bibl`
         publisher:
           type: string
+          description: First `tei:publisher` from the `tei:bibl`
         placePublished:
           type: string
+          description: First `tei:pubPlace` from the `tei:bibl`
         year:
           type: integer
+          description: >-
+            Publication year extracted from `tei:date` (parsed from
+            `@when` or text content)
         links:
           type: array
+          description: >-
+            URLs from `tei:ref` elements in the `tei:bibl`,
+            with TextGrid URIs expanded
           items:
             type: object
             properties:
@@ -901,21 +1022,37 @@ components:
         - bibl
     Text:
       type: object
+      title: Text
+      x-eltec-api-function: "eltei:get-text-info"
+      description: >-
+        Metadata for a single ELTeC text. Combines basic bibliographic
+        information from the TEI header (title, authors, sources) with
+        cached metrics and the ELTeC balance criteria
+        (`eltec:authorGender`, `eltec:size`, `eltec:timeSlot`,
+        `eltec:reprintCount`).
       properties:
         id:
           type: string
+          description: >-
+            Text identifier from `tei:TEI/@xml:id`, e.g. `DEU001`
         name:
           type: string
+          description: >-
+            URL slug for the text (lowercase folder name in the
+            eXist-db collection), e.g. `deu001`
         corpus:
           type: string
+          description: Name of the corpus this text belongs to
         title:
           type: string
+          description: Title from `tei:titleStmt/tei:title`
         authors:
           type: array
           items:
             $ref: "#/components/schemas/Author"
         refs:
           $ref: "#/components/schemas/References"
+          description: External references for the work itself (e.g. Wikidata)
         sources:
           type: array
           items:
@@ -925,29 +1062,43 @@ components:
         corpusUrl:
           type: string
           format: url
+          description: URL to the parent corpus
         commit:
           type: string
+          description: >-
+            Git commit SHA of this text version (from `git.xml` in the
+            text collection)
         authorGender:
           type: string
-          description: Gender of the author (ELTeC balance criterion)
+          description: >-
+            Gender of the author from `eltec:authorGender/@key`. ELTeC
+            encodes gender at the text level (not per author).
           enum: [M, F]
         sizeCategory:
           type: string
-          description: Word-count bracket (ELTeC balance criterion)
+          description: >-
+            Word-count bracket from `eltec:size/@key`. Thresholds:
+            short < 50k, medium 50k–100k, long > 100k.
           enum: [short, medium, long]
         timeSlot:
           type: string
-          description: 20-year publication period (ELTeC balance criterion)
+          description: >-
+            20-year publication period from `eltec:timeSlot/@key`:
+            T1 (1840–1859), T2 (1860–1879), T3 (1880–1899),
+            T4 (1900–1919).
           enum: [T1, T2, T3, T4]
         reprintCount:
           type: string
-          description: Canonicity proxy based on known reprints (ELTeC balance criterion)
+          description: >-
+            Canonicity proxy from `eltec:reprintCount/@key` (or the
+            legacy `eltec:canonicity/@key`). Indicates whether the text
+            had many reprints in its source language.
           enum: [low, high]
         referenceYear:
           type: string
           description: >-
-            Reference year for the text, derived by priority:
-            first edition > print source > digital source date.
+            Reference year for the text, derived from source dates by
+            priority: first edition > print source > digital source.
       required:
         - id
         - name
@@ -957,13 +1108,19 @@ components:
         - corpusUrl
     SearchResponse:
       type: object
+      title: Search Results
+      x-eltec-api-function: "search:search"
+      description: >-
+        Paginated full-text search results. Hits are returned at
+        paragraph level (one entry per matching `tei:p`) in document
+        order.
       properties:
         query:
           type: string
           description: The search query that was executed
         totalHits:
           type: integer
-          description: Total number of matching paragraphs
+          description: Total number of matching paragraphs across all texts
         offset:
           type: integer
           description: Zero-based offset of the current page
@@ -976,6 +1133,13 @@ components:
             $ref: "#/components/schemas/SearchHit"
     SearchHit:
       type: object
+      title: Search Hit
+      x-eltec-api-function: "search:search"
+      description: >-
+        A single search result representing one matching paragraph.
+        Includes basic text metadata, a KWIC context snippet, and direct
+        URLs to the corresponding DTS endpoints for retrieving the full
+        passage or its citation context.
       properties:
         id:
           type: string
