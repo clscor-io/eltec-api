@@ -819,10 +819,31 @@ declare function local:navigate(
             }
           ))
 
+    (: start/end + down > 0 or down = -1: range with descendants :)
+    else if ($start and $end and exists($down) and ($down > 0 or $down = -1)) then
+      let $start-elem := local:resolve-ref-to-element($tei, $start)
+      let $end-elem := local:resolve-ref-to-element($tei, $end)
+      return
+        if (empty($start-elem) or empty($end-elem)) then
+          (
+            <rest:response><http:response status="404"/></rest:response>,
+            map { "error": "Not Found", "message": "Range citation not found." }
+          )
+        else
+          let $members := local:get-range-members($tei, $start, $end, $down)
+          return map:merge((
+            $base-response,
+            map {
+              "start": local:citable-unit($start, $start-elem),
+              "end": local:citable-unit($end, $end-elem)
+            },
+            map { "member": array { $members } }
+          ))
+
     else
       (
-        <rest:response><http:response status="501"/></rest:response>,
-        map { "error": "Not Implemented", "message": "This parameter combination is not yet supported." }
+        <rest:response><http:response status="400"/></rest:response>,
+        map { "error": "Bad Request", "message": "Invalid parameter combination." }
       )
 };
 
@@ -1065,6 +1086,65 @@ declare function local:get-siblings(
       local:get-top-level-units($tei)
     else
       local:get-citable-children($tei, $parent-ref)
+};
+
+
+(:~
+ : Get CitableUnits in a range between start and end, with descendants.
+ :
+ : Algorithm: produce the full ordered walk of the citation tree,
+ : find start and end positions in that walk, slice inclusive,
+ : then filter by depth budget. The depth budget is:
+ :   max(level(start), level(end)) + down
+ : or unlimited if down = -1.
+ :
+ : @param $tei TEI document
+ : @param $start Start identifier
+ : @param $end End identifier
+ : @param $down Depth relative to the deeper endpoint (-1 = full depth)
+ :)
+declare function local:get-range-members(
+  $tei as element(tei:TEI),
+  $start as xs:string,
+  $end as xs:string,
+  $down as xs:integer
+) as map()* {
+  let $full-tree := local:get-full-tree($tei)
+
+  (: find positions of start and end in the full walk :)
+  let $start-pos := (
+    for $unit at $pos in $full-tree
+    where $unit?identifier = $start
+    return $pos
+  )[1]
+
+  let $end-pos := (
+    for $unit at $pos in $full-tree
+    where $unit?identifier = $end
+    return $pos
+  )[1]
+
+  (: find the last descendant of the end node — anything after end-pos
+   : whose identifier starts with the end identifier is a descendant :)
+  let $end-last := (
+    for $unit at $pos in $full-tree
+    where $pos > $end-pos
+      and starts-with($unit?identifier, $end || "/")
+    return $pos
+  )
+  let $slice-end := if (count($end-last)) then $end-last[last()] else $end-pos
+
+  (: slice the walk between start and end inclusive, including end's descendants :)
+  let $range := $full-tree[position() >= $start-pos and position() <= $slice-end]
+
+  (: compute depth budget :)
+  let $start-level := local:get-level($start)
+  let $end-level := local:get-level($end)
+  let $deeper-level := max(($start-level, $end-level))
+  let $max-level := if ($down = -1) then 999 else $deeper-level + $down
+
+  (: filter by depth budget :)
+  return $range[.?level <= $max-level]
 };
 
 
