@@ -48,12 +48,13 @@ declare function eltei:get-eltec-id($tei as element(tei:TEI)) as xs:string* {
  : "(vydání ELTeC)", ...) into tei:titleStmt/tei:title.
  : This helper removes that suffix so API consumers see a clean title.
  :
- : Applied iteratively to handle pathological double suffixes such as
- : "Mark Rutherford's Deliverance : ELTec edition : ELTeC edition"
- : that occur in some corpora.
+ : Only one pass is applied. Double suffixes (e.g.
+ : "... : ELTec edition : ELTeC edition") are a data quality issue
+ : that should be fixed in the source TEI files.
  :
  : @param $title A raw title string
- : @return The title with any trailing ELTeC edition label removed
+ : @return The title with any trailing ELTeC edition label removed,
+ :   normalized whitespace
  :)
 declare function eltei:strip-edition-label(
   $title as xs:string?
@@ -62,29 +63,25 @@ declare function eltei:strip-edition-label(
   else
     let $patterns := (
       (: project-name-first labels, e.g. "ELTeC ausgabe", "ELTeC edition",
-       : "ELTeC kiadás", "ELTeC издање", and the typo "ELTec edition" :)
-      "\s*[:(]?\s*(?:ELTec|ELTeC)\s+(?:[Aa]usgabe|[Ee]dition|kiadás|издање)\s*\)?\s*$",
+       : "ELTeC kiadás", "ELTeC издање" :)
+      "\s*[:(]?\s*eltec\s+(?:ausgabe|edition|kiadás|издање)\s*\)?\s*$",
 
       (: language-word-first labels, e.g. "édition ELTeC",
        : "edición ELTeC", "Edição para o ELTeC", "vydání ELTeC",
        : "edicija ELTeC", "ediție ELTeC". The optional "(" / ")" handles
        : the parenthesised Czech form "(vydání ELTeC)". :)
-      "\s*[:(]?\s*(?:édition|[Ee]dición|[Ee]dicija|[Ee]di[țt]ie|[Ee]dição\s+para\s+o|[Vv]ydání)\s+(?:ELTeC|ELTEC)\s*\)?\s*$"
+      "\s*[:(]?\s*(?:édition|edición|edicija|edi[țt]ie|edição\s+para\s+o|vydání)\s+eltec\s*\)?\s*$"
     )
 
-    let $stripped :=
+    return normalize-space(
       fold-left(
         $patterns,
-        $title,
+        normalize-space($title),
         function ($acc as xs:string, $pattern as xs:string) as xs:string {
-          if (matches($acc, $pattern)) then replace($acc, $pattern, "")
-          else $acc
+          replace($acc, $pattern, "", "i")
         }
       )
-
-    return
-      if ($stripped = $title) then normalize-space($stripped)
-      else eltei:strip-edition-label($stripped)
+    )
 };
 
 (:~
@@ -94,7 +91,7 @@ declare function eltei:strip-edition-label(
  :)
 declare function eltei:get-titles( $tei as element(tei:TEI) ) as map() {
   let $title := eltei:strip-edition-label(
-    $tei//tei:fileDesc/tei:titleStmt/tei:title[1]/normalize-space()
+    $tei//tei:fileDesc/tei:titleStmt/tei:title[1]/string()
   )
   let $subtitle :=
     $tei//tei:titleStmt/tei:title[@type='sub'][1]/normalize-space()
@@ -120,7 +117,7 @@ declare function eltei:get-titles(
   let $title := eltei:strip-edition-label(
     $tei//tei:fileDesc/tei:titleStmt
       /tei:title[@xml:lang = $lang and not(@type = 'sub')][1]
-      /normalize-space()
+      /string()
   )
   let $subtitle :=
     $tei//tei:titleStmt/tei:title[@type = 'sub' and @xml:lang = $lang][1]
