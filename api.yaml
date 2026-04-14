@@ -901,13 +901,6 @@ components:
         - repository
         - textsUrl
         - updated
-    ExternalReferenceResourceId:
-      type: object
-      properties:
-        type:
-          type: string
-        ref:
-          type: string
     TextMetrics:
       type: object
       title: Text Metrics
@@ -1051,7 +1044,8 @@ components:
           items:
             $ref: "#/components/schemas/Author"
         refs:
-          $ref: "#/components/schemas/References"
+          allOf:
+            - $ref: "#/components/schemas/References"
           description: External references for the work itself (e.g. Wikidata)
         sources:
           type: array
@@ -1181,20 +1175,3 @@ components:
           description: >-
             URL to the DTS Navigation endpoint for the matching
             paragraph's citation context
-    Occurrence:
-      type: object
-      properties:
-        frequency:
-          type: integer
-        id:
-          type: string
-        # FIXME: Including the text paragraphs will not perform on the corpus
-        # level which is why the property is optional for now. We should
-        # consider removing it and finding an alternative why to access the
-        # text. How about providing a link to the TEI with the paragraph ID as
-        # fragment identifier.
-        text:
-          type: string
-      required:
-        - frequency
-        - id
