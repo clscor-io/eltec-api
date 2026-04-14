@@ -766,10 +766,13 @@ components:
           description: >-
             Total number of `tei:p` elements in the body of all texts
         numOfWords:
-          type: integer
+          type: number
+          format: double
           description: >-
             Sum of word counts across all texts (aggregated from cached
-            per-text metrics, calculated by tokenizing `tei:text` on `\W+`)
+            per-text metrics, calculated by tokenizing `tei:text` on `\W+`).
+            Returned as a double because the underlying XQuery `sum()`
+            over cached values promotes to `xs:double`.
     BalanceDistribution:
       type: object
       title: Corpus Balance Distribution
@@ -976,10 +979,13 @@ components:
           description: >-
             Number of `tei:p` elements in the body of the text
         numOfWords:
-          type: integer
+          type: number
+          format: double
           description: >-
             Word count (cached). Calculated by tokenizing the
-            `tei:text` content on `\W+`.
+            `tei:text` content on `\W+`. Returned as a double because the
+            underlying XQuery `sum()` over cached values promotes to
+            `xs:double`.
     References:
       type: array
       title: External References
