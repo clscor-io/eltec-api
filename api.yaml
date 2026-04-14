@@ -64,6 +64,23 @@ paths:
               example:
                 { "existdb": "6.4.0", "name": "ELTeC API", "version": "1.0.0" }
 
+  /v1/openapi.yaml:
+    get:
+      summary: OpenAPI specification
+      description: >-
+        Returns this OpenAPI specification document. The `version` field and
+        the `servers` URL are rewritten at request time to reflect the
+        running application's version and base URL.
+      operationId: get-openapi-yaml
+      tags: [meta]
+      responses:
+        "200":
+          description: Returns the OpenAPI YAML document
+          content:
+            application/yaml:
+              schema:
+                type: string
+
   /v1/corpora:
     get:
       summary: List available corpora
@@ -307,6 +324,45 @@ paths:
             application/tei+xml:
               schema:
                 type: string
+
+    put:
+      summary: Add or replace a single text
+      description: >-
+        This endpoint requires authorization.
+
+        Sending a PUT request with a TEI document as payload stores the text
+        under `{textname}` in the corpus, replacing any existing text with
+        that name. The payload root must be a `tei:TEI` element. New text
+        names must be lower-case ASCII (digits and dashes allowed).
+      operationId: put-text
+      tags: [admin]
+      parameters:
+        - $ref: "#/components/parameters/corpusname"
+        - $ref: "#/components/parameters/textname"
+      requestBody:
+        required: true
+        content:
+          application/xml:
+            schema:
+              type: string
+          text/xml:
+            schema:
+              type: string
+      responses:
+        "200":
+          description: Returns the stored TEI document
+          content:
+            application/xml:
+              schema:
+                type: string
+        "400":
+          description: >-
+            Payload is not a TEI document, or `{textname}` is not a valid
+            slug for a new text
+        "401":
+          description: Authorization required
+        "404":
+          description: Corpus not found
 
     delete:
       summary: Remove a single text from the corpus
