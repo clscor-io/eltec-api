@@ -185,11 +185,11 @@ declare function elutil:create-corpus(
  :)
 declare function elutil:get-corpus-sha($name as xs:string) as xs:string* {
   let $col := collection($config:corpora-root || "/" || $name)
-  let $num-plays := count($col/tei:TEI)
+  let $num-texts := count($col/tei:TEI)
   let $num-sha := count($col/git/sha)
   let $shas := distinct-values($col/git/sha)
 
-  return if($num-plays = $num-sha and count($shas) = 1) then $shas[1] else ()
+  return if($num-texts = $num-sha and count($shas) = 1) then $shas[1] else ()
 };
 
 declare function local:record-sha(
@@ -204,19 +204,19 @@ declare function local:record-sha(
 };
 
 (:~
- : Write commit SHA to git.xml file for play
+ : Write commit SHA to git.xml file for text
  :
  : @param $corpusname Corpus name
- : @param $play Play name
+ : @param $textname Text name
  : @return string* Path to git.xml file
  :)
 declare function elutil:record-sha(
   $corpusname as xs:string,
-  $playname as xs:string,
+  $textname as xs:string,
   $sha as xs:string
 ) as xs:string* {
-  let $paths := elutil:filepaths($corpusname, $playname)
-  return local:record-sha($paths?collections?play, $sha)
+  let $paths := elutil:filepaths($corpusname, $textname)
+  return local:record-sha($paths?collections?text, $sha)
 };
 
 (:~
@@ -254,16 +254,16 @@ declare function elutil:remove-corpus-sha(
 };
 
 (:~
- : Remove play git.xml file
+ : Remove text git.xml file
  :
  : @param $corpusname Corpus name
- : @param $playname Play name
+ : @param $textname Text name
  :)
 declare function elutil:remove-sha(
   $corpusname as xs:string,
-  $playname as xs:string
+  $textname as xs:string
 ) {
   let $collection :=
-    $config:corpora-root || "/" || $corpusname || "/" || $playname
+    $config:corpora-root || "/" || $corpusname || "/" || $textname
   return local:remove-sha($collection)
 };
