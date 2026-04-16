@@ -138,19 +138,6 @@ declare function eltei:get-text-paras($tei as element(tei:TEI)) as element(tei:p
 };
 
 (:~
- : Extract Wikidata ID for play from standOff.
- :
- : @param $tei TEI element
- :)
-declare function eltei:get-text-wikidata-id ($tei as element(tei:TEI)) {
-  let $uri := $tei//tei:standOff/tei:listRelation
-    /tei:relation[@name="wikidata"][1]/@passive/string()
-  return if (starts-with($uri, 'http://www.wikidata.org/entity/')) then
-    tokenize($uri, '/')[last()]
-  else ()
-};
-
-(:~
  : Extract ELTeC classification metadata.
  :
  : Returns the four balance criteria from the eltec: namespace elements
