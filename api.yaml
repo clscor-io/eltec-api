@@ -1009,6 +1009,9 @@ components:
         `"Name (birth-death)"`; the parser splits on ` (` to get the
         name. Authority references are augmented from the local
         `authors.xml` lookup table where the source TEI lacks Wikidata IDs.
+
+        **Note:** Author gender is encoded at the text level via 
+        `eltec:authorGender` and exposed on the `Text` schema as `authorGender`.
       properties:
         name:
           type: string
@@ -1016,13 +1019,6 @@ components:
             Author name (the ELTeC convention is "Surname, Forename")
         refs:
           $ref: "#/components/schemas/References"
-        gender:
-          type: string
-          description: >-
-            **Note:** Currently declared but NOT extracted by
-            `eltei:get-authors`. Author gender is encoded at the text
-            level via `eltec:authorGender` and exposed on the `Text`
-            schema as `authorGender`.
       required:
         - name
     Source:
