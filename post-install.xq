@@ -23,7 +23,7 @@ declare function local:create-config-file ()
 as item()? {
   if(doc($config:file)/config) then
     ()
-  else
+  else (
     util:log-system-out("Creating " || $config:file),
     local:store(
       $config:file,
@@ -37,6 +37,7 @@ as item()? {
         </api-base>
       </config>
     )
+  )
 };
 
 (: We create an initial config file the values of which can be passed by the
