@@ -1052,10 +1052,11 @@ components:
           type: string
           description: First `tei:pubPlace` from the `tei:bibl`
         year:
-          type: integer
+          type: string
           description: >-
-            Publication year extracted from `tei:date` (parsed from
-            `@when` or text content)
+            Publication year extracted from `tei:date` (parsed from `@when` or 
+            text content). Usually a 4-digit year (e.g. "1871"), but may be a 
+            range for sources spanning multiple years (e.g. "1897-1898").
         links:
           type: array
           description: >-
