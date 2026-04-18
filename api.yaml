@@ -1,4 +1,4 @@
-openapi: "3.0.0"
+openapi: 3.0.3
 
 info:
   version: 0.0.1
@@ -63,6 +63,23 @@ paths:
                 $ref: "#/components/schemas/Info"
               example:
                 { "existdb": "6.4.0", "name": "ELTeC API", "version": "1.0.0" }
+
+  /v1/openapi.yaml:
+    get:
+      summary: OpenAPI specification
+      description: >-
+        Returns this OpenAPI specification document. The `version` field and
+        the `servers` URL are rewritten at request time to reflect the
+        running application's version and base URL.
+      operationId: get-openapi-yaml
+      tags: [meta]
+      responses:
+        "200":
+          description: Returns the OpenAPI YAML document
+          content:
+            application/yaml:
+              schema:
+                type: string
 
   /v1/corpora:
     get:
@@ -308,6 +325,45 @@ paths:
               schema:
                 type: string
 
+    put:
+      summary: Add or replace a single text
+      description: >-
+        This endpoint requires authorization.
+
+        Sending a PUT request with a TEI document as payload stores the text
+        under `{textname}` in the corpus, replacing any existing text with
+        that name. The payload root must be a `tei:TEI` element. New text
+        names must be lower-case ASCII (digits and dashes allowed).
+      operationId: put-text
+      tags: [admin]
+      parameters:
+        - $ref: "#/components/parameters/corpusname"
+        - $ref: "#/components/parameters/textname"
+      requestBody:
+        required: true
+        content:
+          application/xml:
+            schema:
+              type: string
+          text/xml:
+            schema:
+              type: string
+      responses:
+        "200":
+          description: Returns the stored TEI document
+          content:
+            application/xml:
+              schema:
+                type: string
+        "400":
+          description: >-
+            Payload is not a TEI document, or `{textname}` is not a valid
+            slug for a new text
+        "401":
+          description: Authorization required
+        "404":
+          description: Corpus not found
+
     delete:
       summary: Remove a single text from the corpus
       operationId: delete-text
@@ -352,6 +408,8 @@ paths:
           description: Returns a plain text document
           content:
             text/plain:
+              schema:
+                type: string
 
   /v1/search:
     get:
@@ -708,10 +766,13 @@ components:
           description: >-
             Total number of `tei:p` elements in the body of all texts
         numOfWords:
-          type: integer
+          type: number
+          format: double
           description: >-
             Sum of word counts across all texts (aggregated from cached
-            per-text metrics, calculated by tokenizing `tei:text` on `\W+`)
+            per-text metrics, calculated by tokenizing `tei:text` on `\W+`).
+            Returned as a double because the underlying XQuery `sum()`
+            over cached values promotes to `xs:double`.
     BalanceDistribution:
       type: object
       title: Corpus Balance Distribution
@@ -901,13 +962,6 @@ components:
         - repository
         - textsUrl
         - updated
-    ExternalReferenceResourceId:
-      type: object
-      properties:
-        type:
-          type: string
-        ref:
-          type: string
     TextMetrics:
       type: object
       title: Text Metrics
@@ -925,10 +979,13 @@ components:
           description: >-
             Number of `tei:p` elements in the body of the text
         numOfWords:
-          type: integer
+          type: number
+          format: double
           description: >-
             Word count (cached). Calculated by tokenizing the
-            `tei:text` content on `\W+`.
+            `tei:text` content on `\W+`. Returned as a double because the
+            underlying XQuery `sum()` over cached values promotes to
+            `xs:double`.
     References:
       type: array
       title: External References
@@ -952,6 +1009,9 @@ components:
         `"Name (birth-death)"`; the parser splits on ` (` to get the
         name. Authority references are augmented from the local
         `authors.xml` lookup table where the source TEI lacks Wikidata IDs.
+
+        **Note:** Author gender is encoded at the text level via 
+        `eltec:authorGender` and exposed on the `Text` schema as `authorGender`.
       properties:
         name:
           type: string
@@ -959,13 +1019,6 @@ components:
             Author name (the ELTeC convention is "Surname, Forename")
         refs:
           $ref: "#/components/schemas/References"
-        gender:
-          type: string
-          description: >-
-            **Note:** Currently declared but NOT extracted by
-            `eltei:get-authors`. Author gender is encoded at the text
-            level via `eltec:authorGender` and exposed on the `Text`
-            schema as `authorGender`.
       required:
         - name
     Source:
@@ -1051,7 +1104,8 @@ components:
           items:
             $ref: "#/components/schemas/Author"
         refs:
-          $ref: "#/components/schemas/References"
+          allOf:
+            - $ref: "#/components/schemas/References"
           description: External references for the work itself (e.g. Wikidata)
         sources:
           type: array
@@ -1181,20 +1235,3 @@ components:
           description: >-
             URL to the DTS Navigation endpoint for the matching
             paragraph's citation context
-    Occurrence:
-      type: object
-      properties:
-        frequency:
-          type: integer
-        id:
-          type: string
-        # FIXME: Including the text paragraphs will not perform on the corpus
-        # level which is why the property is optional for now. We should
-        # consider removing it and finding an alternative why to access the
-        # text. How about providing a link to the TEI with the paragraph ID as
-        # fragment identifier.
-        text:
-          type: string
-      required:
-        - frequency
-        - id
