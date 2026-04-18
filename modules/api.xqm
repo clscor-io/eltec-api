@@ -58,20 +58,32 @@ function api:info() {
 (:~
  : OpenAPI specification
  :
+ : This endpoint serves the api.yaml document. It adjusts the version and server
+ : URL in that file with the actual version of the currently running API and
+ : the configured $config:api-base. For setups where the API is accessed via a
+ : proxy the server URL can also be overridden with a `X-Proxy-Api` header.
+ :
  : @result YAML
  :)
 declare
   %rest:GET
   %rest:path("/eltec/v1/openapi.yaml")
+  %rest:header-param("X-Proxy-Api", "{$proxy-api}")
   %rest:produces("application/yaml")
   %output:media-type("application/yaml")
   %output:method("text")
-function api:openapi-yaml() {
+function api:openapi-yaml($proxy-api) {
   let $path := $config:app-root || "/api.yaml"
   let $expath := config:expath-descriptor()
   let $yaml := util:base64-decode(xs:string(util:binary-doc($path)))
   return replace(
-    replace($yaml, 'https://eltec.clscor.io/api', $config:api-base),
+    replace(
+      $yaml,
+      'https://eltec.clscor.io/api',
+      (: we strip the /v1 from api-base because the paths in api.yaml do already
+         include this prefix :)
+      if ($proxy-api) then $proxy-api else replace($config:api-base, '/v1$', '')
+    ),
     'version: [0-9.]+',
     'version: ' || $expath/@version/string()
   )

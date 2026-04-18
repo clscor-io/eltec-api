@@ -1,7 +1,7 @@
 openapi: 3.0.3
 
 info:
-  version: 0.0.1
+  version: 1.0.0
   title: ELTeC API
   contact:
     email: "trilcke@uni-potsdam.de"
@@ -470,17 +470,18 @@ paths:
                   "totalHits": 507,
                   "offset": 0,
                   "limit": 20,
-                  "results": [
-                    {
-                      "id": "ENG18400",
-                      "name": "eng18400",
-                      "corpus": "eltec-eng",
-                      "title": "The Heir of Redclyffe : ELTeC edition",
-                      "authors": [{"name": "Yonge, Charlotte Mary"}],
-                      "citableUnit": "body/div[29]/p[1]",
-                      "kwic": "...repairing and beautifying my old castle — you would certainly call it a ca..."
-                    }
-                  ]
+                  "results":
+                    [
+                      {
+                        "id": "ENG18400",
+                        "name": "eng18400",
+                        "corpus": "eltec-eng",
+                        "title": "The Heir of Redclyffe : ELTeC edition",
+                        "authors": [{ "name": "Yonge, Charlotte Mary" }],
+                        "citableUnit": "body/div[29]/p[1]",
+                        "kwic": "...repairing and beautifying my old castle — you would certainly call it a ca...",
+                      },
+                    ],
                 }
         "400":
           description: Missing required parameter `q`
